@@ -162,114 +162,146 @@ export default function EditAgentPage() {
   return (
     <DashboardShell>
       <SignedOut>
-        <div className="flex h-full flex-col items-center justify-center gap-4 rounded-2xl surface-panel p-10 text-center lg:col-span-2">
-          <p className="text-sm text-muted">Sign in to edit agents.</p>
-          <SignInButton
-            mode="modal"
-            forceRedirectUrl={`/agents/${agentId}/edit`}
-            signUpForceRedirectUrl={`/agents/${agentId}/edit`}
-          >
-            <Button>Sign in</Button>
-          </SignInButton>
+        <div className="col-span-2 flex min-h-[calc(100vh-64px)] items-center justify-center bg-slate-50 p-10 text-center">
+          <div className="rounded-xl border border-slate-200 bg-white px-8 py-6 shadow-sm">
+            <p className="text-sm text-slate-600">Sign in to edit agents.</p>
+            <SignInButton
+              mode="modal"
+              forceRedirectUrl={`/agents/${agentId}/edit`}
+              signUpForceRedirectUrl={`/agents/${agentId}/edit`}
+            >
+              <Button className="mt-4">Sign in</Button>
+            </SignInButton>
+          </div>
         </div>
       </SignedOut>
       <SignedIn>
         <DashboardSidebar />
-        <div className="flex h-full flex-col justify-center rounded-2xl surface-panel p-8">
-          <div className="mb-6 space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-quiet">
-              Edit agent
-            </p>
-            <h1 className="text-2xl font-semibold text-strong">
-              {agent?.name ?? "Agent"}
-            </h1>
-            <p className="text-sm text-muted">
-              Status is controlled by agent heartbeat.
-            </p>
-          </div>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-strong">Agent name</label>
-              <Input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="e.g. Deploy bot"
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-strong">Board</label>
-              <Select
-                value={boardId}
-                onValueChange={(value) => setBoardId(value)}
-                disabled={boards.length === 0}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select board" />
-                </SelectTrigger>
-                <SelectContent>
-                  {boards.map((board) => (
-                    <SelectItem key={board.id} value={board.id}>
-                      {board.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {boards.length === 0 ? (
-                <p className="text-xs text-quiet">
-                  Create a board before assigning agents.
-                </p>
-              ) : null}
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-strong">
-                Heartbeat interval
-              </label>
-              <Input
-                value={heartbeatEvery}
-                onChange={(event) => setHeartbeatEvery(event.target.value)}
-                placeholder="e.g. 10m"
-                disabled={isLoading}
-              />
-              <p className="text-xs text-quiet">
-                Set how often this agent runs HEARTBEAT.md.
+        <main className="flex-1 overflow-y-auto bg-slate-50">
+          <div className="border-b border-slate-200 bg-white px-8 py-6">
+            <div>
+              <h1 className="font-heading text-2xl font-semibold text-slate-900 tracking-tight">
+                {agent?.name ?? "Edit agent"}
+              </h1>
+              <p className="mt-1 text-sm text-slate-500">
+                Status is controlled by agent heartbeat.
               </p>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-strong">
-                Heartbeat target
-              </label>
-              <Select
-                value={heartbeatTarget}
-                onValueChange={(value) => setHeartbeatTarget(value)}
-                disabled={isLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select target" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None (no outbound message)</SelectItem>
-                  <SelectItem value="last">Last channel</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {error ? (
-              <div className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-muted)] p-3 text-xs text-muted">
-                {error}
+          </div>
+
+          <div className="p-8">
+            <form
+              onSubmit={handleSubmit}
+              className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6"
+            >
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Agent identity
+                </p>
+                <div className="mt-4 grid gap-6 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-900">
+                      Agent name
+                    </label>
+                    <Input
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                      placeholder="e.g. Deploy bot"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-900">
+                      Board
+                    </label>
+                    <Select
+                      value={boardId}
+                      onValueChange={(value) => setBoardId(value)}
+                      disabled={boards.length === 0}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select board" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {boards.map((board) => (
+                          <SelectItem key={board.id} value={board.id}>
+                            {board.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {boards.length === 0 ? (
+                      <p className="text-xs text-slate-500">
+                        Create a board before assigning agents.
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
               </div>
-            ) : null}
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Saving…" : "Save changes"}
-            </Button>
-          </form>
-          <Button
-            variant="outline"
-            className="mt-4"
-            onClick={() => router.push(`/agents/${agentId}`)}
-          >
-            Back to agent
-          </Button>
-        </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Heartbeat settings
+                </p>
+                <div className="mt-4 grid gap-6 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-900">
+                      Interval
+                    </label>
+                    <Input
+                      value={heartbeatEvery}
+                      onChange={(event) => setHeartbeatEvery(event.target.value)}
+                      placeholder="e.g. 10m"
+                      disabled={isLoading}
+                    />
+                    <p className="text-xs text-slate-500">
+                      Set how often this agent runs HEARTBEAT.md.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-900">
+                      Target
+                    </label>
+                    <Select
+                      value={heartbeatTarget}
+                      onValueChange={(value) => setHeartbeatTarget(value)}
+                      disabled={isLoading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select target" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">
+                          None (no outbound message)
+                        </SelectItem>
+                        <SelectItem value="last">Last channel</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {error ? (
+                <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-600 shadow-sm">
+                  {error}
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap items-center gap-3">
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? "Saving…" : "Save changes"}
+                </Button>
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => router.push(`/agents/${agentId}`)}
+                >
+                  Back to agent
+                </Button>
+              </div>
+            </form>
+          </div>
+        </main>
       </SignedIn>
     </DashboardShell>
   );

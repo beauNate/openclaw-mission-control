@@ -24,11 +24,19 @@ from app.models.boards import Board
 router = APIRouter(prefix="/gateway", tags=["gateway"])
 
 
-def _require_board_config(session: Session, board_id: str | None) -> tuple[Board, GatewayConfig]:
+def _resolve_gateway_config(
+    session: Session,
+    board_id: str | None,
+    gateway_url: str | None,
+    gateway_token: str | None,
+    gateway_main_session_key: str | None,
+) -> tuple[Board | None, GatewayConfig, str | None]:
+    if gateway_url:
+        return None, GatewayConfig(url=gateway_url, token=gateway_token), gateway_main_session_key
     if not board_id:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="board_id is required",
+            detail="board_id or gateway_url is required",
         )
     board = session.get(Board, board_id)
     if board is None:
@@ -38,28 +46,31 @@ def _require_board_config(session: Session, board_id: str | None) -> tuple[Board
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Board gateway_url is required",
         )
-    if not board.gateway_main_session_key:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Board gateway_main_session_key is required",
-        )
-    return board, GatewayConfig(url=board.gateway_url, token=board.gateway_token)
+    return board, GatewayConfig(url=board.gateway_url, token=board.gateway_token), board.gateway_main_session_key
 
 
 @router.get("/status")
 async def gateway_status(
     board_id: str | None = Query(default=None),
+    gateway_url: str | None = Query(default=None),
+    gateway_token: str | None = Query(default=None),
+    gateway_main_session_key: str | None = Query(default=None),
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_admin_auth),
 ) -> dict[str, object]:
-    board, config = _require_board_config(session, board_id)
+    board, config, main_session = _resolve_gateway_config(
+        session,
+        board_id,
+        gateway_url,
+        gateway_token,
+        gateway_main_session_key,
+    )
     try:
         sessions = await openclaw_call("sessions.list", config=config)
         if isinstance(sessions, dict):
             sessions_list = list(sessions.get("sessions") or [])
         else:
             sessions_list = list(sessions or [])
-        main_session = board.gateway_main_session_key
         main_session_entry: object | None = None
         main_session_error: str | None = None
         if main_session:
@@ -73,7 +84,7 @@ async def gateway_status(
                 main_session_error = str(exc)
         return {
             "connected": True,
-            "gateway_url": board.gateway_url,
+            "gateway_url": config.url,
             "sessions_count": len(sessions_list),
             "sessions": sessions_list,
             "main_session_key": main_session,
@@ -83,7 +94,7 @@ async def gateway_status(
     except OpenClawGatewayError as exc:
         return {
             "connected": False,
-            "gateway_url": board.gateway_url,
+            "gateway_url": config.url,
             "error": str(exc),
         }
 
@@ -94,7 +105,13 @@ async def list_sessions(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_admin_auth),
 ) -> dict[str, object]:
-    board, config = _require_board_config(session, board_id)
+    board, config, main_session = _resolve_gateway_config(
+        session,
+        board_id,
+        None,
+        None,
+        None,
+    )
     try:
         sessions = await openclaw_call("sessions.list", config=config)
     except OpenClawGatewayError as exc:
@@ -104,7 +121,6 @@ async def list_sessions(
     else:
         sessions_list = list(sessions or [])
 
-    main_session = board.gateway_main_session_key
     main_session_entry: object | None = None
     if main_session:
         try:
@@ -130,7 +146,13 @@ async def get_gateway_session(
     session: Session = Depends(get_session),
     auth: AuthContext = Depends(require_admin_auth),
 ) -> dict[str, object]:
-    board, config = _require_board_config(session, board_id)
+    board, config, main_session = _resolve_gateway_config(
+        session,
+        board_id,
+        None,
+        None,
+        None,
+    )
     try:
         sessions = await openclaw_call("sessions.list", config=config)
     except OpenClawGatewayError as exc:
