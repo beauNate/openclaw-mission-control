@@ -16,16 +16,10 @@ import {
 } from "@clerk/nextjs";
 
 export function isClerkEnabled(): boolean {
-  const key = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  if (!key) return false;
-
-  // Clerk validates publishable key contents at runtime; use a conservative heuristic.
-  const m = /^pk_(test|live)_([A-Za-z0-9]+)$/.exec(key);
-  if (!m) return false;
-  const body = m[2];
-  if (body.length < 16) return false;
-  if (/^0+$/.test(body)) return false;
-  return true;
+  // Invariant: Clerk is disabled ONLY when the publishable key is absent.
+  // If a key is present, we assume Clerk is intended to be enabled and we let
+  // Clerk fail fast if the key is invalid/misconfigured.
+  return Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
 }
 
 export function SignedIn(props: { children: ReactNode }) {
