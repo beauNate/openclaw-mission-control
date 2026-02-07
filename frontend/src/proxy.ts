@@ -9,7 +9,7 @@ const isClerkEnabled = () =>
   );
 
 // Public routes must include Clerk sign-in paths to avoid redirect loops.
-const isPublicRoute = createRouteMatcher(["/sign-in(.*)"]); 
+const isPublicRoute = createRouteMatcher(["/sign-in(.*)"]);
 
 export default isClerkEnabled()
   ? clerkMiddleware((auth, req) => {
