@@ -34,8 +34,9 @@ Cypress.Commands.add("loginWithClerkOtp", () => {
 
   const opts: ClerkOtpLoginOptions = { clerkOrigin, email, otp };
 
-  // Trigger the modal from the app first.
-  cy.get('[data-testid="activity-signin"]').click({ force: true });
+  // Navigate to a dedicated sign-in route that performs a top-level redirect
+  // to Clerk hosted sign-in (avoids modal/iframe limitations in Cypress).
+  cy.visit("/sign-in");
 
   // The Clerk UI is typically hosted on a different origin (clerk.accounts.dev / clerk.com).
   // Use cy.origin to drive the UI in Chrome.
