@@ -15,7 +15,7 @@ const TabsList = React.forwardRef<
     ref={ref}
     className={cn(
       "inline-flex items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] p-1",
-      className
+      className,
     )}
     {...props}
   />
@@ -30,7 +30,7 @@ const TabsTrigger = React.forwardRef<
     ref={ref}
     className={cn(
       "rounded-full px-4 py-2 text-xs font-semibold text-muted transition data-[state=active]:bg-[color:var(--accent)] data-[state=active]:text-white",
-      className
+      className,
     )}
     {...props}
   />

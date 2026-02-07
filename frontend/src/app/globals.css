@@ -20,11 +20,9 @@
   --warning: #d97706;
   --danger: #dc2626;
   --shadow-panel:
-    0 1px 3px rgba(15, 23, 42, 0.12),
-    0 1px 2px rgba(15, 23, 42, 0.08);
+    0 1px 3px rgba(15, 23, 42, 0.12), 0 1px 2px rgba(15, 23, 42, 0.08);
   --shadow-card:
-    0 1px 2px rgba(15, 23, 42, 0.08),
-    0 2px 6px rgba(15, 23, 42, 0.06);
+    0 1px 2px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.06);
 }
 
 body {
@@ -148,7 +146,10 @@ body {
   --warning: #f59e0b;
 
   min-height: 100vh;
-  font-family: var(--font-body), -apple-system, sans-serif;
+  font-family:
+    var(--font-body),
+    -apple-system,
+    sans-serif;
   background: var(--neutral-100);
   color: var(--neutral-800);
   line-height: 1.6;
@@ -220,7 +221,11 @@ body {
 .landing-enterprise .logo-icon {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, var(--primary-navy), var(--secondary-navy));
+  background: linear-gradient(
+    135deg,
+    var(--primary-navy),
+    var(--secondary-navy)
+  );
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -332,7 +337,11 @@ body {
 .landing-enterprise .hero-label {
   display: inline-block;
   padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, rgba(10, 22, 40, 0.05), rgba(45, 212, 191, 0.08));
+  background: linear-gradient(
+    135deg,
+    rgba(10, 22, 40, 0.05),
+    rgba(45, 212, 191, 0.08)
+  );
   border: 1px solid rgba(45, 212, 191, 0.2);
   border-radius: 50px;
   font-size: 13px;
@@ -455,7 +464,11 @@ body {
 
 .landing-enterprise .surface-header {
   padding: 1.5rem 2rem;
-  background: linear-gradient(135deg, var(--primary-navy), var(--secondary-navy));
+  background: linear-gradient(
+    135deg,
+    var(--primary-navy),
+    var(--secondary-navy)
+  );
   color: white;
   display: flex;
   justify-content: space-between;
@@ -702,7 +715,11 @@ body {
 .landing-enterprise .feature-number {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, rgba(10, 22, 40, 0.05), rgba(45, 212, 191, 0.08));
+  background: linear-gradient(
+    135deg,
+    rgba(10, 22, 40, 0.05),
+    rgba(45, 212, 191, 0.08)
+  );
   border: 1px solid var(--neutral-200);
   border-radius: 10px;
   display: flex;
@@ -730,7 +747,11 @@ body {
 
 .landing-enterprise .cta-section {
   padding: 5rem 2.5rem;
-  background: linear-gradient(135deg, var(--primary-navy), var(--secondary-navy));
+  background: linear-gradient(
+    135deg,
+    var(--primary-navy),
+    var(--secondary-navy)
+  );
   text-align: center;
 }
 

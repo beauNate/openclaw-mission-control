@@ -6,7 +6,7 @@
  */
 
 export interface GatewayCommandsResponse {
-  events: string[];
-  methods: string[];
   protocol_version: number;
+  methods: string[];
+  events: string[];
 }

@@ -8,6 +8,6 @@
 export interface BoardMemoryCreate {
   /** @minLength 1 */
   content: string;
-  source?: string | null;
   tags?: string[] | null;
+  source?: string | null;
 }

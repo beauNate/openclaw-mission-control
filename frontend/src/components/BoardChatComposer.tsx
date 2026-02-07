@@ -56,7 +56,10 @@ function BoardChatComposerImpl({
         disabled={isSending}
       />
       <div className="flex justify-end">
-        <Button onClick={() => void send()} disabled={isSending || !value.trim()}>
+        <Button
+          onClick={() => void send()}
+          disabled={isSending || !value.trim()}
+        >
           {isSending ? "Sending…" : "Send"}
         </Button>
       </div>

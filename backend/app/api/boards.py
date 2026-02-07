@@ -24,6 +24,7 @@ from app.integrations.openclaw_gateway import (
 from app.models.activity_events import ActivityEvent
 from app.models.agents import Agent
 from app.models.approvals import Approval
+from app.models.board_groups import BoardGroup
 from app.models.board_memory import BoardMemory
 from app.models.board_onboarding import BoardOnboardingSession
 from app.models.boards import Board
@@ -34,7 +35,8 @@ from app.models.tasks import Task
 from app.schemas.boards import BoardCreate, BoardRead, BoardUpdate
 from app.schemas.common import OkResponse
 from app.schemas.pagination import DefaultLimitOffsetPage
-from app.schemas.view_models import BoardSnapshot
+from app.schemas.view_models import BoardGroupSnapshot, BoardSnapshot
+from app.services.board_group_snapshot import build_board_group_snapshot
 from app.services.board_snapshot import build_board_snapshot
 
 router = APIRouter(prefix="/boards", tags=["boards"])
@@ -68,6 +70,25 @@ async def _require_gateway_for_create(
     return await _require_gateway(session, payload.gateway_id)
 
 
+async def _require_board_group(session: AsyncSession, board_group_id: object) -> BoardGroup:
+    group = await crud.get_by_id(session, BoardGroup, board_group_id)
+    if group is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="board_group_id is invalid",
+        )
+    return group
+
+
+async def _require_board_group_for_create(
+    payload: BoardCreate,
+    session: AsyncSession = Depends(get_session),
+) -> BoardGroup | None:
+    if payload.board_group_id is None:
+        return None
+    return await _require_board_group(session, payload.board_group_id)
+
+
 async def _apply_board_update(
     *,
     payload: BoardUpdate,
@@ -77,6 +98,8 @@ async def _apply_board_update(
     updates = payload.model_dump(exclude_unset=True)
     if "gateway_id" in updates:
         await _require_gateway(session, updates["gateway_id"])
+    if "board_group_id" in updates and updates["board_group_id"] is not None:
+        await _require_board_group(session, updates["board_group_id"])
     for key, value in updates.items():
         setattr(board, key, value)
     if updates.get("board_type") == "goal":
@@ -157,12 +180,15 @@ async def _cleanup_agent_on_gateway(
 @router.get("", response_model=DefaultLimitOffsetPage[BoardRead])
 async def list_boards(
     gateway_id: UUID | None = Query(default=None),
+    board_group_id: UUID | None = Query(default=None),
     session: AsyncSession = Depends(get_session),
     actor: ActorContext = Depends(require_admin_or_agent),
 ) -> DefaultLimitOffsetPage[BoardRead]:
     statement = select(Board)
     if gateway_id is not None:
         statement = statement.where(col(Board.gateway_id) == gateway_id)
+    if board_group_id is not None:
+        statement = statement.where(col(Board.board_group_id) == board_group_id)
     statement = statement.order_by(func.lower(col(Board.name)).asc(), col(Board.created_at).desc())
     return await paginate(session, statement)
 
@@ -171,6 +197,7 @@ async def list_boards(
 async def create_board(
     payload: BoardCreate,
     _gateway: Gateway = Depends(_require_gateway_for_create),
+    _board_group: BoardGroup | None = Depends(_require_board_group_for_create),
     session: AsyncSession = Depends(get_session),
     auth: AuthContext = Depends(require_admin_auth),
 ) -> Board:
@@ -195,6 +222,27 @@ async def get_board_snapshot(
         if actor.agent.board_id and actor.agent.board_id != board.id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     return await build_board_snapshot(session, board)
+
+
+@router.get("/{board_id}/group-snapshot", response_model=BoardGroupSnapshot)
+async def get_board_group_snapshot(
+    include_self: bool = Query(default=False),
+    include_done: bool = Query(default=False),
+    per_board_task_limit: int = Query(default=5, ge=0, le=100),
+    board: Board = Depends(get_board_or_404),
+    session: AsyncSession = Depends(get_session),
+    actor: ActorContext = Depends(require_admin_or_agent),
+) -> BoardGroupSnapshot:
+    if actor.actor_type == "agent" and actor.agent:
+        if actor.agent.board_id and actor.agent.board_id != board.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    return await build_board_group_snapshot(
+        session,
+        board=board,
+        include_self=include_self,
+        include_done=include_done,
+        per_board_task_limit=per_board_task_limit,
+    )
 
 
 @router.patch("/{board_id}", response_model=BoardRead)

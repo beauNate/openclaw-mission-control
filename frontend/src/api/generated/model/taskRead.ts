@@ -7,19 +7,19 @@
 import type { TaskReadStatus } from "./taskReadStatus";
 
 export interface TaskRead {
-  assigned_agent_id?: string | null;
-  blocked_by_task_ids?: string[];
-  board_id: string | null;
-  created_at: string;
-  created_by_user_id: string | null;
-  depends_on_task_ids?: string[];
-  description?: string | null;
-  due_at?: string | null;
-  id: string;
-  in_progress_at: string | null;
-  is_blocked?: boolean;
-  priority?: string;
-  status?: TaskReadStatus;
   title: string;
+  description?: string | null;
+  status?: TaskReadStatus;
+  priority?: string;
+  due_at?: string | null;
+  assigned_agent_id?: string | null;
+  depends_on_task_ids?: string[];
+  id: string;
+  board_id: string | null;
+  created_by_user_id: string | null;
+  in_progress_at: string | null;
+  created_at: string;
   updated_at: string;
+  blocked_by_task_ids?: string[];
+  is_blocked?: boolean;
 }

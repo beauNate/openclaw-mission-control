@@ -95,8 +95,14 @@ export function BoardGoalPanel({
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">
             Objective
           </p>
-          <p className={cn("text-sm", board?.objective ? "text-strong" : "text-muted")}>
-            {board?.objective || (isGoalBoard ? "No objective yet." : "Not required.")}
+          <p
+            className={cn(
+              "text-sm",
+              board?.objective ? "text-strong" : "text-muted",
+            )}
+          >
+            {board?.objective ||
+              (isGoalBoard ? "No objective yet." : "Not required.")}
           </p>
         </div>
         <div className="space-y-2">
@@ -122,7 +128,9 @@ export function BoardGoalPanel({
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">
             Target date
           </p>
-          <p className="text-sm text-strong">{formatTargetDate(board?.target_date)}</p>
+          <p className="text-sm text-strong">
+            {formatTargetDate(board?.target_date)}
+          </p>
         </div>
         {onStartOnboarding || onEdit ? (
           <div className="flex flex-wrap gap-2">

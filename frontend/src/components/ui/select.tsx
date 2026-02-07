@@ -19,7 +19,7 @@ const SelectTrigger = React.forwardRef<
     type="button"
     className={cn(
       "flex h-11 w-full cursor-pointer items-center justify-between rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 text-sm text-strong shadow-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)] focus:ring-offset-2",
-      className
+      className,
     )}
     {...props}
   >
@@ -37,7 +37,10 @@ const SelectScrollUpButton = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.ScrollUpButton
     ref={ref}
-    className={cn("flex cursor-pointer items-center justify-center py-1", className)}
+    className={cn(
+      "flex cursor-pointer items-center justify-center py-1",
+      className,
+    )}
     {...props}
   >
     <ChevronUp className="h-4 w-4" />
@@ -51,7 +54,10 @@ const SelectScrollDownButton = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.ScrollDownButton
     ref={ref}
-    className={cn("flex cursor-pointer items-center justify-center py-1", className)}
+    className={cn(
+      "flex cursor-pointer items-center justify-center py-1",
+      className,
+    )}
     {...props}
   >
     <ChevronDown className="h-4 w-4" />
@@ -97,7 +103,10 @@ const SelectLabel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.Label
     ref={ref}
-    className={cn("py-1.5 pl-8 pr-2 text-sm font-semibold text-strong", className)}
+    className={cn(
+      "py-1.5 pl-8 pr-2 text-sm font-semibold text-strong",
+      className,
+    )}
     {...props}
   />
 ));

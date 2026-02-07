@@ -6,9 +6,9 @@
  */
 
 export interface GatewayCreate {
-  main_session_key: string;
   name: string;
-  token?: string | null;
   url: string;
+  main_session_key: string;
   workspace_root: string;
+  token?: string | null;
 }

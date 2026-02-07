@@ -87,7 +87,9 @@ async def _require_gateway_main(
 ) -> tuple[Gateway, GatewayClientConfig]:
     session_key = (agent.openclaw_session_id or "").strip()
     if not session_key:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Agent missing session key")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Agent missing session key"
+        )
     gateway = (
         await session.exec(select(Gateway).where(col(Gateway.main_session_key) == session_key))
     ).first()
@@ -675,8 +677,10 @@ async def broadcast_gateway_lead_message(
 
     gateway, config = await _require_gateway_main(session, agent_ctx.agent)
 
-    statement = select(Board).where(col(Board.gateway_id) == gateway.id).order_by(
-        col(Board.created_at).desc()
+    statement = (
+        select(Board)
+        .where(col(Board.gateway_id) == gateway.id)
+        .order_by(col(Board.created_at).desc())
     )
     if payload.board_ids:
         statement = statement.where(col(Board.id).in_(payload.board_ids))

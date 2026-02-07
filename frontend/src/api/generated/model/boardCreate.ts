@@ -7,13 +7,14 @@
 import type { BoardCreateSuccessMetrics } from "./boardCreateSuccessMetrics";
 
 export interface BoardCreate {
-  board_type?: string;
-  gateway_id: string;
-  goal_confirmed?: boolean;
-  goal_source?: string | null;
   name: string;
-  objective?: string | null;
   slug: string;
+  gateway_id: string;
+  board_group_id?: string | null;
+  board_type?: string;
+  objective?: string | null;
   success_metrics?: BoardCreateSuccessMetrics;
   target_date?: string | null;
+  goal_confirmed?: boolean;
+  goal_source?: string | null;
 }

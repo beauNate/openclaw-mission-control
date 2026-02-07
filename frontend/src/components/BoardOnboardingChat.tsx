@@ -255,9 +255,7 @@ export function BoardOnboardingChat({
         setSelectedOptions([]);
         setAwaitingAssistantFingerprint(fingerprintBefore);
         setAwaitingKind("answer");
-        setLastSubmittedAnswer(
-          freeText ? `${value}: ${freeText}` : value,
-        );
+        setLastSubmittedAnswer(freeText ? `${value}: ${freeText}` : value);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to submit answer.",
@@ -497,14 +495,14 @@ export function BoardOnboardingChat({
                 {extraContextOpen ? "Hide" : "Add"}
               </Button>
             </div>
-	            {extraContextOpen ? (
-	              <div className="mt-2 space-y-2">
-	                <Textarea
-	                  ref={extraContextRef}
-	                  className="min-h-[84px]"
-	                  placeholder="Anything else the agent should know before you confirm? (constraints, context, preferences, links, etc.)"
-	                  value={extraContext}
-	                  onChange={(event) => setExtraContext(event.target.value)}
+            {extraContextOpen ? (
+              <div className="mt-2 space-y-2">
+                <Textarea
+                  ref={extraContextRef}
+                  className="min-h-[84px]"
+                  placeholder="Anything else the agent should know before you confirm? (constraints, context, preferences, links, etc.)"
+                  value={extraContext}
+                  onChange={(event) => setExtraContext(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key !== "Enter") return;
                     if (event.nativeEvent.isComposing) return;
@@ -521,9 +519,15 @@ export function BoardOnboardingChat({
                     size="sm"
                     type="button"
                     onClick={() => void submitExtraContext()}
-                    disabled={loading || isAwaitingAgent || !extraContext.trim()}
+                    disabled={
+                      loading || isAwaitingAgent || !extraContext.trim()
+                    }
                   >
-                    {loading ? "Sending..." : isAwaitingAgent ? "Waiting..." : "Send context"}
+                    {loading
+                      ? "Sending..."
+                      : isAwaitingAgent
+                        ? "Waiting..."
+                        : "Send context"}
                   </Button>
                 </div>
                 <p className="text-xs text-slate-500">
@@ -538,7 +542,11 @@ export function BoardOnboardingChat({
             )}
           </div>
           <DialogFooter>
-            <Button onClick={confirmGoal} disabled={loading || isAwaitingAgent} type="button">
+            <Button
+              onClick={confirmGoal}
+              disabled={loading || isAwaitingAgent}
+              type="button"
+            >
               Confirm goal
             </Button>
           </DialogFooter>

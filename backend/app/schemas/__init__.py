@@ -1,6 +1,7 @@
 from app.schemas.activity_events import ActivityEventRead
 from app.schemas.agents import AgentCreate, AgentRead, AgentUpdate
 from app.schemas.approvals import ApprovalCreate, ApprovalRead, ApprovalUpdate
+from app.schemas.board_group_memory import BoardGroupMemoryCreate, BoardGroupMemoryRead
 from app.schemas.board_memory import BoardMemoryCreate, BoardMemoryRead
 from app.schemas.board_onboarding import (
     BoardOnboardingAnswer,
@@ -22,6 +23,8 @@ __all__ = [
     "ApprovalCreate",
     "ApprovalRead",
     "ApprovalUpdate",
+    "BoardGroupMemoryCreate",
+    "BoardGroupMemoryRead",
     "BoardMemoryCreate",
     "BoardMemoryRead",
     "BoardOnboardingAnswer",

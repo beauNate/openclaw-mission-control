@@ -150,6 +150,21 @@ run a short intake with the human in **board chat**.
    - For any task in **review**, fetch its comments:
      GET $BASE_URL/api/v1/agent/boards/$BOARD_ID/tasks/$TASK_ID/comments
 
+2b) Board Group scan (cross-board visibility, if configured):
+- Pull the group snapshot (agent auth works via `X-Agent-Token`):
+  - GET `$BASE_URL/api/v1/boards/$BOARD_ID/group-snapshot?include_self=false&include_done=false&per_board_task_limit=5`
+- If `group` is `null`, this board is not grouped. Skip.
+- Otherwise:
+  - Scan other boards for overlapping deliverables and cross-board blockers.
+  - Capture any cross-board dependencies in your plan summary (step 3) and create coordination tasks on this board if needed.
+
+2c) Board Group memory scan (shared announcements/chat, if configured):
+- Pull group shared memory:
+  - GET `$BASE_URL/api/v1/boards/$BOARD_ID/group-memory?limit=50`
+- Use it to:
+  - Stay aligned on shared decisions across linked boards.
+  - Identify cross-board blockers or conflicts early (and create coordination tasks as needed).
+
 2a) De-duplication pass (mandatory before creating tasks or approvals)
 - Goal: prevent agents from working in parallel on the same deliverable.
 - Scan for overlap using existing tasks + board memory (and approvals if relevant).

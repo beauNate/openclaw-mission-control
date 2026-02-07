@@ -1,6 +1,13 @@
 "use client";
 
-import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { TaskCard } from "@/components/molecules/TaskCard";
 import { parseApiDatetime } from "@/lib/datetime";
@@ -140,6 +147,7 @@ export const TaskBoard = memo(function TaskBoard({
   }, []);
 
   useLayoutEffect(() => {
+    const cardRefsSnapshot = cardRefs.current;
     if (animationRafRef.current !== null) {
       window.cancelAnimationFrame(animationRafRef.current);
       animationRafRef.current = null;
@@ -149,7 +157,7 @@ export const TaskBoard = memo(function TaskBoard({
       cleanupTimeoutRef.current = null;
     }
     for (const taskId of animatedTaskIdsRef.current) {
-      const element = cardRefs.current.get(taskId);
+      const element = cardRefsSnapshot.get(taskId);
       if (!element) continue;
       element.style.transform = "";
       element.style.transition = "";
@@ -182,7 +190,7 @@ export const TaskBoard = memo(function TaskBoard({
       const dx = prev.left - next.left;
       const dy = prev.top - next.top;
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
-      const element = cardRefs.current.get(taskId);
+      const element = cardRefsSnapshot.get(taskId);
       if (!element) continue;
       moved.push({ taskId, element, dx, dy });
     }
@@ -229,7 +237,7 @@ export const TaskBoard = memo(function TaskBoard({
         cleanupTimeoutRef.current = null;
       }
       for (const taskId of animatedTaskIdsRef.current) {
-        const element = cardRefs.current.get(taskId);
+        const element = cardRefsSnapshot.get(taskId);
         if (!element) continue;
         element.style.transform = "";
         element.style.transition = "";
@@ -302,10 +310,10 @@ export const TaskBoard = memo(function TaskBoard({
     };
 
   const handleDragLeave = (status: TaskStatus) => () => {
-      if (activeColumn === status) {
-        setActiveColumn(null);
-      }
-    };
+    if (activeColumn === status) {
+      setActiveColumn(null);
+    }
+  };
 
   return (
     <div
@@ -343,9 +351,14 @@ export const TaskBoard = memo(function TaskBoard({
             ? columnTasks.filter((task) => {
                 if (reviewBucket === "blocked") return Boolean(task.is_blocked);
                 if (reviewBucket === "approval_needed")
-                  return (task.approvals_pending_count ?? 0) > 0 && !task.is_blocked;
+                  return (
+                    (task.approvals_pending_count ?? 0) > 0 && !task.is_blocked
+                  );
                 if (reviewBucket === "waiting_lead")
-                  return !task.is_blocked && (task.approvals_pending_count ?? 0) === 0;
+                  return (
+                    !task.is_blocked &&
+                    (task.approvals_pending_count ?? 0) === 0
+                  );
                 return true;
               })
             : columnTasks;
@@ -393,7 +406,11 @@ export const TaskBoard = memo(function TaskBoard({
                         label: "Lead review",
                         count: reviewCounts.waiting_lead,
                       },
-                      { key: "blocked", label: "Blocked", count: reviewCounts.blocked },
+                      {
+                        key: "blocked",
+                        label: "Blocked",
+                        count: reviewCounts.blocked,
+                      },
                     ] as const
                   ).map((option) => (
                     <button

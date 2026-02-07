@@ -22,7 +22,11 @@ import {
   type listBoardsApiV1BoardsGetResponse,
   useListBoardsApiV1BoardsGet,
 } from "@/api/generated/boards/boards";
-import type { ActivityEventRead, AgentRead, BoardRead } from "@/api/generated/model";
+import type {
+  ActivityEventRead,
+  AgentRead,
+  BoardRead,
+} from "@/api/generated/model";
 import { StatusPill } from "@/components/atoms/StatusPill";
 import { DashboardSidebar } from "@/components/organisms/DashboardSidebar";
 import { DashboardShell } from "@/components/templates/DashboardShell";
@@ -119,12 +123,14 @@ export default function AgentDetailPage() {
 
   const agent: AgentRead | null =
     agentQuery.data?.status === 200 ? agentQuery.data.data : null;
-  const events: ActivityEventRead[] =
-    activityQuery.data?.status === 200
-      ? activityQuery.data.data.items ?? []
-      : [];
-  const boards: BoardRead[] =
-    boardsQuery.data?.status === 200 ? boardsQuery.data.data.items ?? [] : [];
+  const events = useMemo<ActivityEventRead[]>(() => {
+    if (activityQuery.data?.status !== 200) return [];
+    return activityQuery.data.data.items ?? [];
+  }, [activityQuery.data]);
+  const boards = useMemo<BoardRead[]>(() => {
+    if (boardsQuery.data?.status !== 200) return [];
+    return boardsQuery.data.data.items ?? [];
+  }, [boardsQuery.data]);
 
   const agentEvents = useMemo(() => {
     if (!agent) return [];
@@ -133,7 +139,7 @@ export default function AgentDetailPage() {
   const linkedBoard =
     !agent?.board_id || agent?.is_gateway_main
       ? null
-      : boards.find((board) => board.id === agent.board_id) ?? null;
+      : (boards.find((board) => board.id === agent.board_id) ?? null);
 
   const deleteMutation = useDeleteAgentApiV1AgentsAgentIdDelete<ApiError>({
     mutation: {
@@ -194,8 +200,7 @@ export default function AgentDetailPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => router.push("/agents")}
-              >
+              <Button variant="outline" onClick={() => router.push("/agents")}>
                 Back to agents
               </Button>
               {agent ? (
@@ -259,7 +264,9 @@ export default function AgentDetailPage() {
                         Board
                       </p>
                       {agent.is_gateway_main ? (
-                        <p className="mt-1 text-sm text-strong">Gateway main (no board)</p>
+                        <p className="mt-1 text-sm text-strong">
+                          Gateway main (no board)
+                        </p>
                       ) : linkedBoard ? (
                         <Link
                           href={`/boards/${linkedBoard.id}`}
@@ -315,7 +322,9 @@ export default function AgentDetailPage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span>Session binding</span>
-                      <span>{agent.openclaw_session_id ? "Bound" : "Unbound"}</span>
+                      <span>
+                        {agent.openclaw_session_id ? "Bound" : "Unbound"}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span>Status</span>

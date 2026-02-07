@@ -3,7 +3,12 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { SignInButton, SignedIn, SignedOut, isClerkEnabled } from "@/auth/clerk";
+import {
+  SignInButton,
+  SignedIn,
+  SignedOut,
+  isClerkEnabled,
+} from "@/auth/clerk";
 
 import { UserMenu } from "@/components/organisms/UserMenu";
 

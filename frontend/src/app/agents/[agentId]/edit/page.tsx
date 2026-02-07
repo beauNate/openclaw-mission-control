@@ -69,7 +69,7 @@ const getBoardOptions = (boards: BoardRead[]): SearchableSelectOption[] =>
   }));
 
 const normalizeIdentityProfile = (
-  profile: IdentityProfile
+  profile: IdentityProfile,
 ): IdentityProfile | null => {
   const normalized: IdentityProfile = {
     role: profile.role.trim(),
@@ -81,11 +81,12 @@ const normalizeIdentityProfile = (
 };
 
 const withIdentityDefaults = (
-  profile: Partial<IdentityProfile> | null | undefined
+  profile: Partial<IdentityProfile> | null | undefined,
 ): IdentityProfile => ({
   role: profile?.role ?? DEFAULT_IDENTITY_PROFILE.role,
   communication_style:
-    profile?.communication_style ?? DEFAULT_IDENTITY_PROFILE.communication_style,
+    profile?.communication_style ??
+    DEFAULT_IDENTITY_PROFILE.communication_style,
   emoji: profile?.emoji ?? DEFAULT_IDENTITY_PROFILE.emoji,
 });
 
@@ -150,8 +151,10 @@ export default function EditAgentPage() {
     },
   });
 
-  const boards =
-    boardsQuery.data?.status === 200 ? boardsQuery.data.data.items ?? [] : [];
+  const boards = useMemo<BoardRead[]>(() => {
+    if (boardsQuery.data?.status !== 200) return [];
+    return boardsQuery.data.data.items ?? [];
+  }, [boardsQuery.data]);
   const loadedAgent: AgentRead | null =
     agentQuery.data?.status === 200 ? agentQuery.data.data : null;
 
@@ -226,7 +229,7 @@ export default function EditAgentPage() {
       !loadedAgent.board_id
     ) {
       setError(
-        "Select a board once so we can resolve the gateway main session key."
+        "Select a board once so we can resolve the gateway main session key.",
       );
       return;
     }
@@ -238,10 +241,9 @@ export default function EditAgentPage() {
         every: resolvedHeartbeatEvery.trim() || "10m",
         target: resolvedHeartbeatTarget,
       } as unknown as Record<string, unknown>,
-      identity_profile: normalizeIdentityProfile(resolvedIdentityProfile) as unknown as Record<
-        string,
-        unknown
-      > | null,
+      identity_profile: normalizeIdentityProfile(
+        resolvedIdentityProfile,
+      ) as unknown as Record<string, unknown> | null,
       soul_template: resolvedSoulTemplate.trim() || null,
     };
     if (!resolvedIsGatewayMain) {
@@ -278,7 +280,9 @@ export default function EditAgentPage() {
           <div className="border-b border-slate-200 bg-white px-8 py-6">
             <div>
               <h1 className="font-heading text-2xl font-semibold text-slate-900 tracking-tight">
-                {resolvedName.trim() ? resolvedName : loadedAgent?.name ?? "Edit agent"}
+                {resolvedName.trim()
+                  ? resolvedName
+                  : (loadedAgent?.name ?? "Edit agent")}
               </h1>
               <p className="mt-1 text-sm text-slate-500">
                 Status is controlled by agent heartbeat.
@@ -356,7 +360,11 @@ export default function EditAgentPage() {
                         value={resolvedBoardId}
                         onValueChange={(value) => setBoardId(value)}
                         options={getBoardOptions(boards)}
-                        placeholder={resolvedIsGatewayMain ? "No board (main agent)" : "Select board"}
+                        placeholder={
+                          resolvedIsGatewayMain
+                            ? "No board (main agent)"
+                            : "Select board"
+                        }
                         searchPlaceholder="Search boards..."
                         emptyMessage="No matching boards."
                         triggerClassName="w-full h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
@@ -410,7 +418,9 @@ export default function EditAgentPage() {
                       type="checkbox"
                       className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-200"
                       checked={resolvedIsGatewayMain}
-                      onChange={(event) => setIsGatewayMain(event.target.checked)}
+                      onChange={(event) =>
+                        setIsGatewayMain(event.target.checked)
+                      }
                       disabled={isLoading}
                     />
                     <span>
@@ -471,7 +481,9 @@ export default function EditAgentPage() {
                     </label>
                     <Input
                       value={resolvedHeartbeatEvery}
-                      onChange={(event) => setHeartbeatEvery(event.target.value)}
+                      onChange={(event) =>
+                        setHeartbeatEvery(event.target.value)
+                      }
                       placeholder="e.g. 10m"
                       disabled={isLoading}
                     />

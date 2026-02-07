@@ -40,7 +40,9 @@ export function SignInButton(props: ComponentProps<typeof ClerkSignInButton>) {
   return <ClerkSignInButton {...props} />;
 }
 
-export function SignOutButton(props: ComponentProps<typeof ClerkSignOutButton>) {
+export function SignOutButton(
+  props: ComponentProps<typeof ClerkSignOutButton>,
+) {
   if (!isClerkEnabled()) return null;
   return <ClerkSignOutButton {...props} />;
 }

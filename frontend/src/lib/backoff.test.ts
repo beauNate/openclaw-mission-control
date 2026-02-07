@@ -6,7 +6,12 @@ describe("createExponentialBackoff", () => {
   it("increments attempt and clamps delay", () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
 
-    const backoff = createExponentialBackoff({ baseMs: 100, factor: 2, maxMs: 250, jitter: 0 });
+    const backoff = createExponentialBackoff({
+      baseMs: 100,
+      factor: 2,
+      maxMs: 250,
+      jitter: 0,
+    });
 
     expect(backoff.attempt()).toBe(0);
     expect(backoff.nextDelayMs()).toBe(100);

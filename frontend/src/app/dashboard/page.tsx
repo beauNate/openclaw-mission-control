@@ -58,31 +58,6 @@ type WipRangeSeries = {
   points: WipPoint[];
 };
 
-type SeriesSet = {
-  primary: RangeSeries;
-  comparison: RangeSeries;
-};
-
-type WipSeriesSet = {
-  primary: WipRangeSeries;
-  comparison: WipRangeSeries;
-};
-
-type DashboardMetrics = {
-  range: RangeKey;
-  generated_at: string;
-  kpis: {
-    active_agents: number;
-    tasks_in_progress: number;
-    error_rate_pct: number;
-    median_cycle_time_hours_7d: number | null;
-  };
-  throughput: SeriesSet;
-  cycle_time: SeriesSet;
-  error_rate: SeriesSet;
-  wip: WipSeriesSet;
-};
-
 const hourFormatter = new Intl.DateTimeFormat("en-US", { hour: "numeric" });
 const dayFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -96,7 +71,9 @@ const updatedFormatter = new Intl.DateTimeFormat("en-US", {
 const formatPeriod = (value: string, bucket: BucketKey) => {
   const date = parseApiDatetime(value);
   if (!date) return "";
-  return bucket === "hour" ? hourFormatter.format(date) : dayFormatter.format(date);
+  return bucket === "hour"
+    ? hourFormatter.format(date)
+    : dayFormatter.format(date);
 };
 
 const formatNumber = (value: number) => value.toLocaleString("en-US");
@@ -130,14 +107,18 @@ function buildWipSeries(series: WipRangeSeries) {
 function buildSparkline(series: RangeSeries) {
   return {
     values: series.points.map((point) => Number(point.value ?? 0)),
-    labels: series.points.map((point) => formatPeriod(point.period, series.bucket)),
+    labels: series.points.map((point) =>
+      formatPeriod(point.period, series.bucket),
+    ),
   };
 }
 
 function buildWipSparkline(series: WipRangeSeries, key: keyof WipPoint) {
   return {
     values: series.points.map((point) => Number(point[key] ?? 0)),
-    labels: series.points.map((point) => formatPeriod(point.period, series.bucket)),
+    labels: series.points.map((point) =>
+      formatPeriod(point.period, series.bucket),
+    ),
   };
 }
 
@@ -155,7 +136,10 @@ function TooltipCard({ active, payload, label, formatter }: TooltipProps) {
       <div className="text-slate-400">{label}</div>
       <div className="mt-1 space-y-1">
         {payload.map((entry) => (
-          <div key={entry.name} className="flex items-center justify-between gap-3">
+          <div
+            key={entry.name}
+            className="flex items-center justify-between gap-3"
+          >
             <span className="flex items-center gap-2">
               <span
                 className="h-2 w-2 rounded-full"
@@ -164,7 +148,9 @@ function TooltipCard({ active, payload, label, formatter }: TooltipProps) {
               {entry.name}
             </span>
             <span className="font-semibold text-slate-900">
-              {formatter ? formatter(Number(entry.value ?? 0), entry.name) : entry.value}
+              {formatter
+                ? formatter(Number(entry.value ?? 0), entry.name)
+                : entry.value}
             </span>
           </div>
         ))}
@@ -192,12 +178,12 @@ function KpiCard({
         <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
           {label}
         </p>
-        <div className="rounded-lg bg-blue-50 p-2 text-blue-600">
-          {icon}
-        </div>
+        <div className="rounded-lg bg-blue-50 p-2 text-blue-600">{icon}</div>
       </div>
       <div className="flex items-end gap-2">
-        <h3 className="font-heading text-4xl font-bold text-slate-900">{value}</h3>
+        <h3 className="font-heading text-4xl font-bold text-slate-900">
+          {value}
+        </h3>
       </div>
       {sublabel ? (
         <p className="mt-2 text-xs text-slate-500">{sublabel}</p>
@@ -304,7 +290,8 @@ export default function DashboardPage() {
     [metrics],
   );
   const wipSpark = useMemo(
-    () => (metrics ? buildWipSparkline(metrics.wip.comparison, "in_progress") : null),
+    () =>
+      metrics ? buildWipSparkline(metrics.wip.comparison, "in_progress") : null,
     [metrics],
   );
 
@@ -312,10 +299,7 @@ export default function DashboardPage() {
     () => (metrics ? Math.min(100, metrics.kpis.active_agents * 12.5) : 0),
     [metrics],
   );
-  const wipProgress = useMemo(
-    () => calcProgress(wipSpark?.values),
-    [wipSpark],
-  );
+  const wipProgress = useMemo(() => calcProgress(wipSpark?.values), [wipSpark]);
   const errorProgress = useMemo(
     () => calcProgress(errorSpark?.values),
     [errorSpark],
@@ -372,7 +356,6 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="p-8">
-
             {metricsQuery.error ? (
               <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
                 {metricsQuery.error.message}
@@ -425,33 +408,10 @@ export default function DashboardPage() {
                     sparkline={throughputSpark ?? undefined}
                   >
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={throughputSeries} margin={{ left: 4, right: 12 }}>
-                        <CartesianGrid vertical={false} stroke="#e2e8f0" />
-                        <XAxis
-                          dataKey="period"
-                          tickLine={false}
-                          axisLine={false}
-                          tick={{ fill: "#94a3b8", fontSize: 11 }}
-                        />
-                        <YAxis
-                          tickLine={false}
-                          axisLine={false}
-                          tick={{ fill: "#94a3b8", fontSize: 11 }}
-                          width={40}
-                        />
-                        <Tooltip content={<TooltipCard formatter={(v) => formatNumber(v)} />} />
-                        <Bar dataKey="value" name="Completed" fill="#2563eb" radius={[6, 6, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
-
-                  <ChartCard
-                    title="Avg Hours to Review"
-                    subtitle="Cycle time"
-                    sparkline={cycleSpark ?? undefined}
-                  >
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={cycleSeries} margin={{ left: 4, right: 12 }}>
+                      <BarChart
+                        data={throughputSeries}
+                        margin={{ left: 4, right: 12 }}
+                      >
                         <CartesianGrid vertical={false} stroke="#e2e8f0" />
                         <XAxis
                           dataKey="period"
@@ -466,7 +426,49 @@ export default function DashboardPage() {
                           width={40}
                         />
                         <Tooltip
-                          content={<TooltipCard formatter={(v) => `${v.toFixed(1)}h`} />}
+                          content={
+                            <TooltipCard formatter={(v) => formatNumber(v)} />
+                          }
+                        />
+                        <Bar
+                          dataKey="value"
+                          name="Completed"
+                          fill="#2563eb"
+                          radius={[6, 6, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartCard>
+
+                  <ChartCard
+                    title="Avg Hours to Review"
+                    subtitle="Cycle time"
+                    sparkline={cycleSpark ?? undefined}
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                        data={cycleSeries}
+                        margin={{ left: 4, right: 12 }}
+                      >
+                        <CartesianGrid vertical={false} stroke="#e2e8f0" />
+                        <XAxis
+                          dataKey="period"
+                          tickLine={false}
+                          axisLine={false}
+                          tick={{ fill: "#94a3b8", fontSize: 11 }}
+                        />
+                        <YAxis
+                          tickLine={false}
+                          axisLine={false}
+                          tick={{ fill: "#94a3b8", fontSize: 11 }}
+                          width={40}
+                        />
+                        <Tooltip
+                          content={
+                            <TooltipCard
+                              formatter={(v) => `${v.toFixed(1)}h`}
+                            />
+                          }
                         />
                         <Line
                           type="monotone"
@@ -486,7 +488,10 @@ export default function DashboardPage() {
                     sparkline={errorSpark ?? undefined}
                   >
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={errorSeries} margin={{ left: 4, right: 12 }}>
+                      <LineChart
+                        data={errorSeries}
+                        margin={{ left: 4, right: 12 }}
+                      >
                         <CartesianGrid vertical={false} stroke="#e2e8f0" />
                         <XAxis
                           dataKey="period"
@@ -501,7 +506,9 @@ export default function DashboardPage() {
                           width={40}
                         />
                         <Tooltip
-                          content={<TooltipCard formatter={(v) => formatPercent(v)} />}
+                          content={
+                            <TooltipCard formatter={(v) => formatPercent(v)} />
+                          }
                         />
                         <Line
                           type="monotone"
@@ -521,7 +528,10 @@ export default function DashboardPage() {
                     sparkline={wipSpark ?? undefined}
                   >
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={wipSeries} margin={{ left: 4, right: 12 }}>
+                      <AreaChart
+                        data={wipSeries}
+                        margin={{ left: 4, right: 12 }}
+                      >
                         <CartesianGrid vertical={false} stroke="#e2e8f0" />
                         <XAxis
                           dataKey="period"
@@ -535,7 +545,11 @@ export default function DashboardPage() {
                           tick={{ fill: "#94a3b8", fontSize: 11 }}
                           width={40}
                         />
-                        <Tooltip content={<TooltipCard formatter={(v) => formatNumber(v)} />} />
+                        <Tooltip
+                          content={
+                            <TooltipCard formatter={(v) => formatNumber(v)} />
+                          }
+                        />
                         <Area
                           type="monotone"
                           dataKey="inbox"

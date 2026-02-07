@@ -77,16 +77,12 @@ const humanizeAction = (value: string) =>
   value
     .split(".")
     .map((part) =>
-      part
-        .replace(/_/g, " ")
-        .replace(/\b\w/g, (char) => char.toUpperCase())
+      part.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()),
     )
     .join(" · ");
 
 const formatStatusLabel = (status: string) =>
-  status
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 
 const statusDotClass = (status: string) => {
   if (status === "approved") return "bg-emerald-500";
@@ -108,17 +104,15 @@ type TooltipValue = number | string | Array<number | string>;
 const formatRubricTooltipValue = (
   value?: TooltipValue,
   name?: TooltipValue,
-  item?:
-    | {
-        color?: string | null;
-        payload?: {
-          name?: string;
-          fill?: string;
-          percent?: number;
-          percentLabel?: string;
-        };
-      }
-    | null,
+  item?: {
+    color?: string | null;
+    payload?: {
+      name?: string;
+      fill?: string;
+      percent?: number;
+      percentLabel?: string;
+    };
+  } | null,
 ) => {
   const payload = item?.payload;
   const label =
@@ -223,19 +217,19 @@ export function BoardApprovalsPanel({
 
   const approvals = useMemo(() => {
     const raw = usingExternal
-      ? externalApprovals ?? []
+      ? (externalApprovals ?? [])
       : approvalsQuery.data?.status === 200
-        ? approvalsQuery.data.data.items ?? []
+        ? (approvalsQuery.data.data.items ?? [])
         : [];
     return raw.map(normalizeApproval);
   }, [approvalsQuery.data, externalApprovals, usingExternal]);
 
   const loadingState = usingExternal
-    ? externalLoading ?? false
+    ? (externalLoading ?? false)
     : approvalsQuery.isLoading;
   const errorState = usingExternal
-    ? externalError ?? null
-    : error ?? approvalsQuery.error?.message ?? null;
+    ? (externalError ?? null)
+    : (error ?? approvalsQuery.error?.message ?? null);
 
   const handleDecision = useCallback(
     (approvalId: string, status: "approved" | "rejected") => {
@@ -244,9 +238,9 @@ export function BoardApprovalsPanel({
         .filter((item) => item.status === "pending")
         .sort(
           (a, b) =>
-            (apiDatetimeToMs(b.created_at) ?? 0) - (apiDatetimeToMs(a.created_at) ?? 0),
-        )[0]
-        ?.id;
+            (apiDatetimeToMs(b.created_at) ?? 0) -
+            (apiDatetimeToMs(a.created_at) ?? 0),
+        )[0]?.id;
       if (pendingNext) {
         setSelectedId(pendingNext);
       }
@@ -311,17 +305,17 @@ export function BoardApprovalsPanel({
         return bTime - aTime;
       });
     const pending = sortByTime(
-      approvals.filter((item) => item.status === "pending")
+      approvals.filter((item) => item.status === "pending"),
     );
     const resolved = sortByTime(
-      approvals.filter((item) => item.status !== "pending")
+      approvals.filter((item) => item.status !== "pending"),
     );
     return { pending, resolved };
   }, [approvals]);
 
   const orderedApprovals = useMemo(
     () => [...sortedApprovals.pending, ...sortedApprovals.resolved],
-    [sortedApprovals.pending, sortedApprovals.resolved]
+    [sortedApprovals.pending, sortedApprovals.resolved],
   );
 
   const effectiveSelectedId = useMemo(() => {
@@ -344,7 +338,6 @@ export function BoardApprovalsPanel({
 
   return (
     <div className={cn("space-y-6", scrollable && "h-full")}>
-
       {errorState ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {errorState}
@@ -358,13 +351,13 @@ export function BoardApprovalsPanel({
         <div
           className={cn(
             "grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]",
-            scrollable && "h-full"
+            scrollable && "h-full",
           )}
         >
           <div
             className={cn(
               "overflow-hidden rounded-xl border border-slate-200 bg-white",
-              scrollable && "flex min-h-0 flex-col"
+              scrollable && "flex min-h-0 flex-col",
             )}
           >
             <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
@@ -378,7 +371,7 @@ export function BoardApprovalsPanel({
             <div
               className={cn(
                 "divide-y divide-slate-100",
-                scrollable && "min-h-0 overflow-y-auto"
+                scrollable && "min-h-0 overflow-y-auto",
               )}
             >
               {orderedApprovals.map((approval) => {
@@ -386,10 +379,10 @@ export function BoardApprovalsPanel({
                 const isSelected = effectiveSelectedId === approval.id;
                 const isPending = approval.status === "pending";
                 const titleRow = summary.rows.find(
-                  (row) => row.label.toLowerCase() === "title"
+                  (row) => row.label.toLowerCase() === "title",
                 );
                 const fallbackRow = summary.rows.find(
-                  (row) => row.label.toLowerCase() !== "title"
+                  (row) => row.label.toLowerCase() !== "title",
                 );
                 const primaryLabel =
                   titleRow?.value ?? fallbackRow?.value ?? "Untitled";
@@ -400,9 +393,8 @@ export function BoardApprovalsPanel({
                     onClick={() => setSelectedId(approval.id)}
                     className={cn(
                       "w-full px-4 py-4 text-left transition hover:bg-slate-50",
-                      isSelected &&
-                        "bg-amber-50 border-l-2 border-amber-500",
-                      !isPending && "opacity-60"
+                      isSelected && "bg-amber-50 border-l-2 border-amber-500",
+                      !isPending && "opacity-60",
                     )}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -412,7 +404,7 @@ export function BoardApprovalsPanel({
                       <span
                         className={cn(
                           "rounded-[3px] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em]",
-                          statusBadgeClass(approval.status)
+                          statusBadgeClass(approval.status),
                         )}
                       >
                         {formatStatusLabel(approval.status)}
@@ -434,7 +426,7 @@ export function BoardApprovalsPanel({
           <div
             className={cn(
               "overflow-hidden rounded-xl border border-slate-200 bg-white",
-              scrollable && "flex min-h-0 flex-col"
+              scrollable && "flex min-h-0 flex-col",
             )}
           >
             <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
@@ -452,7 +444,7 @@ export function BoardApprovalsPanel({
               (() => {
                 const summary = approvalSummary(selectedApproval);
                 const titleRow = summary.rows.find(
-                  (row) => row.label.toLowerCase() === "title"
+                  (row) => row.label.toLowerCase() === "title",
                 );
                 const titleText = titleRow?.value?.trim() ?? "";
                 const descriptionText = summary.description?.trim() ?? "";
@@ -465,7 +457,7 @@ export function BoardApprovalsPanel({
                   return true;
                 });
                 const rubricEntries = Object.entries(
-                  selectedApproval.rubric_scores ?? {}
+                  selectedApproval.rubric_scores ?? {},
                 ).map(([key, value]) => ({
                   label: key
                     .replace(/_/g, " ")
@@ -478,7 +470,8 @@ export function BoardApprovalsPanel({
                 );
                 const hasRubric = rubricEntries.length > 0 && rubricTotal > 0;
                 const rubricChartData = rubricEntries.map((entry, index) => {
-                  const percent = rubricTotal > 0 ? (entry.value / rubricTotal) * 100 : 0;
+                  const percent =
+                    rubricTotal > 0 ? (entry.value / rubricTotal) * 100 : 0;
                   return {
                     key: entry.label.toLowerCase().replace(/[^a-z0-9]+/g, "_"),
                     name: entry.label,
@@ -507,14 +500,15 @@ export function BoardApprovalsPanel({
                           {humanizeAction(selectedApproval.action_type)}
                         </p>
                         <p className="mt-1 text-xs text-slate-500">
-                          Requested {formatTimestamp(selectedApproval.created_at)}
+                          Requested{" "}
+                          {formatTimestamp(selectedApproval.created_at)}
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-3">
                         <span
                           className={cn(
                             "rounded-md px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em]",
-                            confidenceBadgeClass(selectedApproval.confidence)
+                            confidenceBadgeClass(selectedApproval.confidence),
                           )}
                         >
                           {selectedApproval.confidence}% confidence
@@ -552,7 +546,7 @@ export function BoardApprovalsPanel({
                       <span
                         className={cn(
                           "h-2 w-2 rounded-full",
-                          statusDotClass(selectedApproval.status)
+                          statusDotClass(selectedApproval.status),
                         )}
                       />
                       <div>
@@ -684,7 +678,6 @@ export function BoardApprovalsPanel({
                         </div>
                       </div>
                     ) : null}
-
                   </div>
                 );
               })()

@@ -6,9 +6,9 @@
  */
 
 export interface BoardOnboardingUserProfile {
-  context?: string | null;
-  notes?: string | null;
   preferred_name?: string | null;
   pronouns?: string | null;
   timezone?: string | null;
+  notes?: string | null;
+  context?: string | null;
 }

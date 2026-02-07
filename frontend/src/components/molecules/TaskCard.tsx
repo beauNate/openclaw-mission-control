@@ -36,14 +36,15 @@ export function TaskCard({
   onDragEnd,
 }: TaskCardProps) {
   const hasPendingApproval = approvalsPendingCount > 0;
-  const needsLeadReview = status === "review" && !isBlocked && !hasPendingApproval;
+  const needsLeadReview =
+    status === "review" && !isBlocked && !hasPendingApproval;
   const leftBarClassName = isBlocked
     ? "bg-rose-400"
     : hasPendingApproval
       ? "bg-amber-400"
       : needsLeadReview
         ? "bg-indigo-400"
-      : null;
+        : null;
   const priorityBadge = (value?: string) => {
     if (!value) return null;
     const normalized = value.toLowerCase();

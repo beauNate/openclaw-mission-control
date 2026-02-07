@@ -2,10 +2,21 @@
 
 import Link from "next/link";
 
-import { SignInButton, SignedIn, SignedOut, isClerkEnabled } from "@/auth/clerk";
+import {
+  SignInButton,
+  SignedIn,
+  SignedOut,
+  isClerkEnabled,
+} from "@/auth/clerk";
 
 const ArrowIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 16 16"
+    fill="none"
+    aria-hidden="true"
+  >
     <path
       d="M6 12L10 8L6 4"
       stroke="currentColor"
@@ -81,16 +92,14 @@ export function LandingHero() {
           </div>
 
           <div className="hero-features">
-            {[
-              "Agent-First Operations",
-              "Approval Queues",
-              "Live Signals",
-            ].map((label) => (
-              <div key={label} className="hero-feature">
-                <div className="feature-icon">✓</div>
-                <span>{label}</span>
-              </div>
-            ))}
+            {["Agent-First Operations", "Approval Queues", "Live Signals"].map(
+              (label) => (
+                <div key={label} className="hero-feature">
+                  <div className="feature-icon">✓</div>
+                  <span>{label}</span>
+                </div>
+              ),
+            )}
           </div>
         </div>
 
@@ -104,7 +113,9 @@ export function LandingHero() {
           </div>
           <div className="surface-subtitle">
             <h3>Ship work without losing the thread.</h3>
-            <p>Tasks, approvals, and agent status stay synced across the board.</p>
+            <p>
+              Tasks, approvals, and agent status stay synced across the board.
+            </p>
           </div>
           <div className="metrics-row">
             {[
@@ -266,4 +277,3 @@ export function LandingHero() {
     </>
   );
 }
-

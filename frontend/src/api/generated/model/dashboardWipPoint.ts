@@ -6,8 +6,8 @@
  */
 
 export interface DashboardWipPoint {
-  in_progress: number;
-  inbox: number;
   period: string;
+  inbox: number;
+  in_progress: number;
   review: number;
 }

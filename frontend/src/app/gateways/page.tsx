@@ -78,9 +78,9 @@ export default function GatewaysPage() {
   const gateways = useMemo(
     () =>
       gatewaysQuery.data?.status === 200
-        ? gatewaysQuery.data.data.items ?? []
+        ? (gatewaysQuery.data.data.items ?? [])
         : [],
-    [gatewaysQuery.data]
+    [gatewaysQuery.data],
   );
   const sortedGateways = useMemo(() => [...gateways], [gateways]);
 
@@ -93,20 +93,25 @@ export default function GatewaysPage() {
         onMutate: async ({ gatewayId }) => {
           await queryClient.cancelQueries({ queryKey: gatewaysKey });
           const previous =
-            queryClient.getQueryData<listGatewaysApiV1GatewaysGetResponse>(gatewaysKey);
+            queryClient.getQueryData<listGatewaysApiV1GatewaysGetResponse>(
+              gatewaysKey,
+            );
           if (previous && previous.status === 200) {
             const nextItems = previous.data.items.filter(
-              (gateway) => gateway.id !== gatewayId
+              (gateway) => gateway.id !== gatewayId,
             );
             const removedCount = previous.data.items.length - nextItems.length;
-            queryClient.setQueryData<listGatewaysApiV1GatewaysGetResponse>(gatewaysKey, {
-              ...previous,
-              data: {
-                ...previous.data,
-                items: nextItems,
-                total: Math.max(0, previous.data.total - removedCount),
+            queryClient.setQueryData<listGatewaysApiV1GatewaysGetResponse>(
+              gatewaysKey,
+              {
+                ...previous,
+                data: {
+                  ...previous.data,
+                  items: nextItems,
+                  total: Math.max(0, previous.data.total - removedCount),
+                },
               },
-            });
+            );
           }
           return { previous };
         },
@@ -123,7 +128,7 @@ export default function GatewaysPage() {
         },
       },
     },
-    queryClient
+    queryClient,
   );
 
   const handleDelete = () => {
@@ -137,10 +142,7 @@ export default function GatewaysPage() {
         accessorKey: "name",
         header: "Gateway",
         cell: ({ row }) => (
-          <Link
-            href={`/gateways/${row.original.id}`}
-            className="group block"
-          >
+          <Link href={`/gateways/${row.original.id}`} className="group block">
             <p className="text-sm font-medium text-slate-900 group-hover:text-blue-600">
               {row.original.name}
             </p>
@@ -181,25 +183,25 @@ export default function GatewaysPage() {
         id: "actions",
         header: "",
         cell: ({ row }) => (
-            <div className="flex justify-end gap-2">
-              <Link
-                href={`/gateways/${row.original.id}/edit`}
-                className={buttonVariants({ variant: "ghost", size: "sm" })}
-              >
-                Edit
-              </Link>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setDeleteTarget(row.original)}
-              >
-                Delete
-              </Button>
-            </div>
+          <div className="flex justify-end gap-2">
+            <Link
+              href={`/gateways/${row.original.id}/edit`}
+              className={buttonVariants({ variant: "ghost", size: "sm" })}
+            >
+              Edit
+            </Link>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDeleteTarget(row.original)}
+            >
+              Delete
+            </Button>
+          </div>
         ),
       },
     ],
-    []
+    [],
   );
 
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -238,16 +240,19 @@ export default function GatewaysPage() {
                     Manage OpenClaw gateway connections used by boards
                   </p>
                 </div>
-              {gateways.length > 0 ? (
-                <Link
-                  href="/gateways/new"
-                  className={buttonVariants({ size: "md", variant: "primary" })}
-                >
-                  Create gateway
-                </Link>
-              ) : null}
+                {gateways.length > 0 ? (
+                  <Link
+                    href="/gateways/new"
+                    className={buttonVariants({
+                      size: "md",
+                      variant: "primary",
+                    })}
+                  >
+                    Create gateway
+                  </Link>
+                ) : null}
+              </div>
             </div>
-          </div>
           </div>
 
           <div className="p-8">
@@ -263,7 +268,7 @@ export default function GatewaysPage() {
                               ? null
                               : flexRender(
                                   header.column.columnDef.header,
-                                  header.getContext()
+                                  header.getContext(),
                                 )}
                           </th>
                         ))}
@@ -274,7 +279,9 @@ export default function GatewaysPage() {
                     {gatewaysQuery.isLoading ? (
                       <tr>
                         <td colSpan={columns.length} className="px-6 py-8">
-                          <span className="text-sm text-slate-500">Loading…</span>
+                          <span className="text-sm text-slate-500">
+                            Loading…
+                          </span>
                         </td>
                       </tr>
                     ) : table.getRowModel().rows.length ? (
@@ -284,7 +291,7 @@ export default function GatewaysPage() {
                             <td key={cell.id} className="px-6 py-4">
                               {flexRender(
                                 cell.column.columnDef.cell,
-                                cell.getContext()
+                                cell.getContext(),
                               )}
                             </td>
                           ))}
@@ -324,7 +331,10 @@ export default function GatewaysPage() {
                             </p>
                             <Link
                               href="/gateways/new"
-                              className={buttonVariants({ size: "md", variant: "primary" })}
+                              className={buttonVariants({
+                                size: "md",
+                                variant: "primary",
+                              })}
                             >
                               Create your first gateway
                             </Link>
@@ -342,12 +352,14 @@ export default function GatewaysPage() {
                 {gatewaysQuery.error.message}
               </p>
             ) : null}
-
           </div>
         </main>
       </SignedIn>
 
-      <Dialog open={Boolean(deleteTarget)} onOpenChange={() => setDeleteTarget(null)}>
+      <Dialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={() => setDeleteTarget(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete gateway?</DialogTitle>

@@ -11,7 +11,10 @@ export type ExponentialBackoff = {
   attempt: () => number;
 };
 
-const clampMs = (value: number, { min, max }: { min: number; max: number }): number => {
+const clampMs = (
+  value: number,
+  { min, max }: { min: number; max: number },
+): number => {
   if (Number.isNaN(value) || !Number.isFinite(value)) return min;
   return Math.min(max, Math.max(min, Math.trunc(value)));
 };
@@ -21,7 +24,10 @@ export const createExponentialBackoff = (
 ): ExponentialBackoff => {
   const baseMs = clampMs(options.baseMs ?? 1_000, { min: 50, max: 60_000 });
   const factor = options.factor ?? 2;
-  const maxMs = clampMs(options.maxMs ?? 5 * 60_000, { min: baseMs, max: 60 * 60_000 });
+  const maxMs = clampMs(options.maxMs ?? 5 * 60_000, {
+    min: baseMs,
+    max: 60 * 60_000,
+  });
   const jitter = options.jitter ?? 0.2;
 
   let attempt = 0;
@@ -35,7 +41,8 @@ export const createExponentialBackoff = (
       // K8s-style jitter: only add extra random delay (no negative jitter),
       // which avoids thundering-herd reconnects.
       const jitterFactor = Math.max(0, jitter);
-      const delay = normalized + Math.floor(Math.random() * jitterFactor * normalized);
+      const delay =
+        normalized + Math.floor(Math.random() * jitterFactor * normalized);
 
       attempt = Math.min(attempt + 1, 64);
       return clampMs(delay, { min: baseMs, max: maxMs });

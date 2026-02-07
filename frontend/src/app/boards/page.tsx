@@ -65,8 +65,10 @@ export default function BoardsPage() {
 
   const boards = useMemo(
     () =>
-      boardsQuery.data?.status === 200 ? boardsQuery.data.data.items ?? [] : [],
-    [boardsQuery.data]
+      boardsQuery.data?.status === 200
+        ? (boardsQuery.data.data.items ?? [])
+        : [],
+    [boardsQuery.data],
   );
 
   const deleteMutation = useDeleteBoardApiV1BoardsBoardIdDelete<
@@ -78,20 +80,25 @@ export default function BoardsPage() {
         onMutate: async ({ boardId }) => {
           await queryClient.cancelQueries({ queryKey: boardsKey });
           const previous =
-            queryClient.getQueryData<listBoardsApiV1BoardsGetResponse>(boardsKey);
+            queryClient.getQueryData<listBoardsApiV1BoardsGetResponse>(
+              boardsKey,
+            );
           if (previous && previous.status === 200) {
             const nextItems = previous.data.items.filter(
-              (board) => board.id !== boardId
+              (board) => board.id !== boardId,
             );
             const removedCount = previous.data.items.length - nextItems.length;
-            queryClient.setQueryData<listBoardsApiV1BoardsGetResponse>(boardsKey, {
-              ...previous,
-              data: {
-                ...previous.data,
-                items: nextItems,
-                total: Math.max(0, previous.data.total - removedCount),
+            queryClient.setQueryData<listBoardsApiV1BoardsGetResponse>(
+              boardsKey,
+              {
+                ...previous,
+                data: {
+                  ...previous.data,
+                  items: nextItems,
+                  total: Math.max(0, previous.data.total - removedCount),
+                },
               },
-            });
+            );
           }
           return { previous };
         },
@@ -108,7 +115,7 @@ export default function BoardsPage() {
         },
       },
     },
-    queryClient
+    queryClient,
   );
 
   const handleDelete = () => {
@@ -160,7 +167,7 @@ export default function BoardsPage() {
         ),
       },
     ],
-    []
+    [],
   );
 
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -204,7 +211,10 @@ export default function BoardsPage() {
                 {boards.length > 0 ? (
                   <Link
                     href="/boards/new"
-                    className={buttonVariants({ size: "md", variant: "primary" })}
+                    className={buttonVariants({
+                      size: "md",
+                      variant: "primary",
+                    })}
                   >
                     Create board
                   </Link>
@@ -229,7 +239,7 @@ export default function BoardsPage() {
                               ? null
                               : flexRender(
                                   header.column.columnDef.header,
-                                  header.getContext()
+                                  header.getContext(),
                                 )}
                           </th>
                         ))}
@@ -240,7 +250,9 @@ export default function BoardsPage() {
                     {boardsQuery.isLoading ? (
                       <tr>
                         <td colSpan={columns.length} className="px-6 py-8">
-                          <span className="text-sm text-slate-500">Loading…</span>
+                          <span className="text-sm text-slate-500">
+                            Loading…
+                          </span>
                         </td>
                       </tr>
                     ) : table.getRowModel().rows.length ? (
@@ -253,7 +265,7 @@ export default function BoardsPage() {
                             <td key={cell.id} className="px-6 py-4 align-top">
                               {flexRender(
                                 cell.column.columnDef.cell,
-                                cell.getContext()
+                                cell.getContext(),
                               )}
                             </td>
                           ))}
@@ -273,30 +285,10 @@ export default function BoardsPage() {
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                               >
-                                <rect
-                                  x="3"
-                                  y="3"
-                                  width="7"
-                                  height="7"
-                                />
-                                <rect
-                                  x="14"
-                                  y="3"
-                                  width="7"
-                                  height="7"
-                                />
-                                <rect
-                                  x="14"
-                                  y="14"
-                                  width="7"
-                                  height="7"
-                                />
-                                <rect
-                                  x="3"
-                                  y="14"
-                                  width="7"
-                                  height="7"
-                                />
+                                <rect x="3" y="3" width="7" height="7" />
+                                <rect x="14" y="3" width="7" height="7" />
+                                <rect x="14" y="14" width="7" height="7" />
+                                <rect x="3" y="14" width="7" height="7" />
                               </svg>
                             </div>
                             <h3 className="mb-2 text-lg font-semibold text-slate-900">
@@ -308,7 +300,10 @@ export default function BoardsPage() {
                             </p>
                             <Link
                               href="/boards/new"
-                              className={buttonVariants({ size: "md", variant: "primary" })}
+                              className={buttonVariants({
+                                size: "md",
+                                variant: "primary",
+                              })}
                             >
                               Create your first board
                             </Link>
@@ -342,7 +337,8 @@ export default function BoardsPage() {
           <DialogHeader>
             <DialogTitle>Delete board</DialogTitle>
             <DialogDescription>
-              This will remove {deleteTarget?.name}. This action cannot be undone.
+              This will remove {deleteTarget?.name}. This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
           {deleteMutation.error ? (

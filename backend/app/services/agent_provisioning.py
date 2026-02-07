@@ -479,6 +479,78 @@ async def _patch_gateway_agent_list(
     await openclaw_call("config.patch", params, config=config)
 
 
+async def patch_gateway_agent_heartbeats(
+    gateway: Gateway,
+    *,
+    entries: list[tuple[str, str, dict[str, Any]]],
+) -> None:
+    """Patch multiple agent heartbeat configs in a single gateway config.patch call.
+
+    Each entry is (agent_id, workspace_path, heartbeat_dict).
+    """
+    if not gateway.url:
+        raise OpenClawGatewayError("Gateway url is required")
+    config = GatewayClientConfig(url=gateway.url, token=gateway.token)
+    cfg = await openclaw_call("config.get", config=config)
+    if not isinstance(cfg, dict):
+        raise OpenClawGatewayError("config.get returned invalid payload")
+    base_hash = cfg.get("hash")
+    data = cfg.get("config") or cfg.get("parsed") or {}
+    if not isinstance(data, dict):
+        raise OpenClawGatewayError("config.get returned invalid config")
+    agents_section = data.get("agents") or {}
+    lst = agents_section.get("list") or []
+    if not isinstance(lst, list):
+        raise OpenClawGatewayError("config agents.list is not a list")
+
+    entry_by_id: dict[str, tuple[str, dict[str, Any]]] = {
+        agent_id: (workspace_path, heartbeat) for agent_id, workspace_path, heartbeat in entries
+    }
+
+    updated_ids: set[str] = set()
+    new_list: list[dict[str, Any]] = []
+    for raw_entry in lst:
+        if not isinstance(raw_entry, dict):
+            new_list.append(raw_entry)
+            continue
+        agent_id = raw_entry.get("id")
+        if not isinstance(agent_id, str) or agent_id not in entry_by_id:
+            new_list.append(raw_entry)
+            continue
+        workspace_path, heartbeat = entry_by_id[agent_id]
+        new_entry = dict(raw_entry)
+        new_entry["workspace"] = workspace_path
+        new_entry["heartbeat"] = heartbeat
+        new_list.append(new_entry)
+        updated_ids.add(agent_id)
+
+    for agent_id, (workspace_path, heartbeat) in entry_by_id.items():
+        if agent_id in updated_ids:
+            continue
+        new_list.append({"id": agent_id, "workspace": workspace_path, "heartbeat": heartbeat})
+
+    patch = {"agents": {"list": new_list}}
+    params = {"raw": json.dumps(patch)}
+    if base_hash:
+        params["baseHash"] = base_hash
+    await openclaw_call("config.patch", params, config=config)
+
+
+async def sync_gateway_agent_heartbeats(gateway: Gateway, agents: list[Agent]) -> None:
+    """Sync current Agent.heartbeat_config values to the gateway config."""
+    if not gateway.workspace_root:
+        raise OpenClawGatewayError("gateway workspace_root is required")
+    entries: list[tuple[str, str, dict[str, Any]]] = []
+    for agent in agents:
+        agent_id = _agent_key(agent)
+        workspace_path = _workspace_path(agent, gateway.workspace_root)
+        heartbeat = _heartbeat_config(agent)
+        entries.append((agent_id, workspace_path, heartbeat))
+    if not entries:
+        return
+    await patch_gateway_agent_heartbeats(gateway, entries=entries)
+
+
 async def _remove_gateway_agent_list(
     agent_id: str,
     config: GatewayClientConfig,

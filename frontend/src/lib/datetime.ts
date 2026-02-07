@@ -50,4 +50,3 @@ export function localDateInputToUtcIso(value?: string | null): string | null {
   if (Number.isNaN(date.getTime())) return null;
   return date.toISOString();
 }
-

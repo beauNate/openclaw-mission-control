@@ -22,9 +22,11 @@ import type {
 
 import type {
   BoardCreate,
+  BoardGroupSnapshot,
   BoardRead,
   BoardSnapshot,
   BoardUpdate,
+  GetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetParams,
   HTTPValidationError,
   LimitOffsetPageTypeVarCustomizedBoardRead,
   ListBoardsApiV1BoardsGetParams,
@@ -360,122 +362,6 @@ export const useCreateBoardApiV1BoardsPost = <
   );
 };
 /**
- * @summary Delete Board
- */
-export type deleteBoardApiV1BoardsBoardIdDeleteResponse200 = {
-  data: OkResponse;
-  status: 200;
-};
-
-export type deleteBoardApiV1BoardsBoardIdDeleteResponse422 = {
-  data: HTTPValidationError;
-  status: 422;
-};
-
-export type deleteBoardApiV1BoardsBoardIdDeleteResponseSuccess =
-  deleteBoardApiV1BoardsBoardIdDeleteResponse200 & {
-    headers: Headers;
-  };
-export type deleteBoardApiV1BoardsBoardIdDeleteResponseError =
-  deleteBoardApiV1BoardsBoardIdDeleteResponse422 & {
-    headers: Headers;
-  };
-
-export type deleteBoardApiV1BoardsBoardIdDeleteResponse =
-  | deleteBoardApiV1BoardsBoardIdDeleteResponseSuccess
-  | deleteBoardApiV1BoardsBoardIdDeleteResponseError;
-
-export const getDeleteBoardApiV1BoardsBoardIdDeleteUrl = (boardId: string) => {
-  return `/api/v1/boards/${boardId}`;
-};
-
-export const deleteBoardApiV1BoardsBoardIdDelete = async (
-  boardId: string,
-  options?: RequestInit,
-): Promise<deleteBoardApiV1BoardsBoardIdDeleteResponse> => {
-  return customFetch<deleteBoardApiV1BoardsBoardIdDeleteResponse>(
-    getDeleteBoardApiV1BoardsBoardIdDeleteUrl(boardId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
-};
-
-export const getDeleteBoardApiV1BoardsBoardIdDeleteMutationOptions = <
-  TError = HTTPValidationError,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof deleteBoardApiV1BoardsBoardIdDelete>>,
-    TError,
-    { boardId: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof deleteBoardApiV1BoardsBoardIdDelete>>,
-  TError,
-  { boardId: string },
-  TContext
-> => {
-  const mutationKey = ["deleteBoardApiV1BoardsBoardIdDelete"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof deleteBoardApiV1BoardsBoardIdDelete>>,
-    { boardId: string }
-  > = (props) => {
-    const { boardId } = props ?? {};
-
-    return deleteBoardApiV1BoardsBoardIdDelete(boardId, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type DeleteBoardApiV1BoardsBoardIdDeleteMutationResult = NonNullable<
-  Awaited<ReturnType<typeof deleteBoardApiV1BoardsBoardIdDelete>>
->;
-
-export type DeleteBoardApiV1BoardsBoardIdDeleteMutationError =
-  HTTPValidationError;
-
-/**
- * @summary Delete Board
- */
-export const useDeleteBoardApiV1BoardsBoardIdDelete = <
-  TError = HTTPValidationError,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof deleteBoardApiV1BoardsBoardIdDelete>>,
-      TError,
-      { boardId: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof deleteBoardApiV1BoardsBoardIdDelete>>,
-  TError,
-  { boardId: string },
-  TContext
-> => {
-  return useMutation(
-    getDeleteBoardApiV1BoardsBoardIdDeleteMutationOptions(options),
-    queryClient,
-  );
-};
-/**
  * @summary Get Board
  */
 export type getBoardApiV1BoardsBoardIdGetResponse200 = {
@@ -794,6 +680,122 @@ export const useUpdateBoardApiV1BoardsBoardIdPatch = <
   );
 };
 /**
+ * @summary Delete Board
+ */
+export type deleteBoardApiV1BoardsBoardIdDeleteResponse200 = {
+  data: OkResponse;
+  status: 200;
+};
+
+export type deleteBoardApiV1BoardsBoardIdDeleteResponse422 = {
+  data: HTTPValidationError;
+  status: 422;
+};
+
+export type deleteBoardApiV1BoardsBoardIdDeleteResponseSuccess =
+  deleteBoardApiV1BoardsBoardIdDeleteResponse200 & {
+    headers: Headers;
+  };
+export type deleteBoardApiV1BoardsBoardIdDeleteResponseError =
+  deleteBoardApiV1BoardsBoardIdDeleteResponse422 & {
+    headers: Headers;
+  };
+
+export type deleteBoardApiV1BoardsBoardIdDeleteResponse =
+  | deleteBoardApiV1BoardsBoardIdDeleteResponseSuccess
+  | deleteBoardApiV1BoardsBoardIdDeleteResponseError;
+
+export const getDeleteBoardApiV1BoardsBoardIdDeleteUrl = (boardId: string) => {
+  return `/api/v1/boards/${boardId}`;
+};
+
+export const deleteBoardApiV1BoardsBoardIdDelete = async (
+  boardId: string,
+  options?: RequestInit,
+): Promise<deleteBoardApiV1BoardsBoardIdDeleteResponse> => {
+  return customFetch<deleteBoardApiV1BoardsBoardIdDeleteResponse>(
+    getDeleteBoardApiV1BoardsBoardIdDeleteUrl(boardId),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getDeleteBoardApiV1BoardsBoardIdDeleteMutationOptions = <
+  TError = HTTPValidationError,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteBoardApiV1BoardsBoardIdDelete>>,
+    TError,
+    { boardId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteBoardApiV1BoardsBoardIdDelete>>,
+  TError,
+  { boardId: string },
+  TContext
+> => {
+  const mutationKey = ["deleteBoardApiV1BoardsBoardIdDelete"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteBoardApiV1BoardsBoardIdDelete>>,
+    { boardId: string }
+  > = (props) => {
+    const { boardId } = props ?? {};
+
+    return deleteBoardApiV1BoardsBoardIdDelete(boardId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteBoardApiV1BoardsBoardIdDeleteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteBoardApiV1BoardsBoardIdDelete>>
+>;
+
+export type DeleteBoardApiV1BoardsBoardIdDeleteMutationError =
+  HTTPValidationError;
+
+/**
+ * @summary Delete Board
+ */
+export const useDeleteBoardApiV1BoardsBoardIdDelete = <
+  TError = HTTPValidationError,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deleteBoardApiV1BoardsBoardIdDelete>>,
+      TError,
+      { boardId: string },
+      TContext
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof deleteBoardApiV1BoardsBoardIdDelete>>,
+  TError,
+  { boardId: string },
+  TContext
+> => {
+  return useMutation(
+    getDeleteBoardApiV1BoardsBoardIdDeleteMutationOptions(options),
+    queryClient,
+  );
+};
+/**
  * @summary Get Board Snapshot
  */
 export type getBoardSnapshotApiV1BoardsBoardIdSnapshotGetResponse200 = {
@@ -1020,6 +1022,308 @@ export function useGetBoardSnapshotApiV1BoardsBoardIdSnapshotGet<
   const queryOptions =
     getGetBoardSnapshotApiV1BoardsBoardIdSnapshotGetQueryOptions(
       boardId,
+      options,
+    );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get Board Group Snapshot
+ */
+export type getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetResponse200 =
+  {
+    data: BoardGroupSnapshot;
+    status: 200;
+  };
+
+export type getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetResponse422 =
+  {
+    data: HTTPValidationError;
+    status: 422;
+  };
+
+export type getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetResponseSuccess =
+  getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetResponse200 & {
+    headers: Headers;
+  };
+export type getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetResponseError =
+  getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetResponse422 & {
+    headers: Headers;
+  };
+
+export type getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetResponse =
+  | getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetResponseSuccess
+  | getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetResponseError;
+
+export const getGetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetUrl = (
+  boardId: string,
+  params?: GetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/v1/boards/${boardId}/group-snapshot?${stringifiedParams}`
+    : `/api/v1/boards/${boardId}/group-snapshot`;
+};
+
+export const getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet = async (
+  boardId: string,
+  params?: GetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetParams,
+  options?: RequestInit,
+): Promise<getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetResponse> => {
+  return customFetch<getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetResponse>(
+    getGetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetUrl(
+      boardId,
+      params,
+    ),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetQueryKey =
+  (
+    boardId: string,
+    params?: GetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetParams,
+  ) => {
+    return [
+      `/api/v1/boards/${boardId}/group-snapshot`,
+      ...(params ? [params] : []),
+    ] as const;
+  };
+
+export const getGetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetQueryOptions =
+  <
+    TData = Awaited<
+      ReturnType<typeof getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet>
+    >,
+    TError = HTTPValidationError,
+  >(
+    boardId: string,
+    params?: GetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetParams,
+    options?: {
+      query?: Partial<
+        UseQueryOptions<
+          Awaited<
+            ReturnType<
+              typeof getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet
+            >
+          >,
+          TError,
+          TData
+        >
+      >;
+      request?: SecondParameter<typeof customFetch>;
+    },
+  ) => {
+    const { query: queryOptions, request: requestOptions } = options ?? {};
+
+    const queryKey =
+      queryOptions?.queryKey ??
+      getGetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetQueryKey(
+        boardId,
+        params,
+      );
+
+    const queryFn: QueryFunction<
+      Awaited<
+        ReturnType<
+          typeof getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet
+        >
+      >
+    > = ({ signal }) =>
+      getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet(boardId, params, {
+        signal,
+        ...requestOptions,
+      });
+
+    return {
+      queryKey,
+      queryFn,
+      enabled: !!boardId,
+      ...queryOptions,
+    } as UseQueryOptions<
+      Awaited<
+        ReturnType<
+          typeof getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet
+        >
+      >,
+      TError,
+      TData
+    > & { queryKey: DataTag<QueryKey, TData, TError> };
+  };
+
+export type GetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetQueryResult =
+  NonNullable<
+    Awaited<
+      ReturnType<typeof getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet>
+    >
+  >;
+export type GetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetQueryError =
+  HTTPValidationError;
+
+export function useGetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet<
+  TData = Awaited<
+    ReturnType<typeof getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet>
+  >,
+  TError = HTTPValidationError,
+>(
+  boardId: string,
+  params:
+    | undefined
+    | GetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<
+          ReturnType<
+            typeof getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet
+          >
+        >,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<
+            ReturnType<
+              typeof getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet
+            >
+          >,
+          TError,
+          Awaited<
+            ReturnType<
+              typeof getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet
+            >
+          >
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet<
+  TData = Awaited<
+    ReturnType<typeof getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet>
+  >,
+  TError = HTTPValidationError,
+>(
+  boardId: string,
+  params?: GetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<
+          ReturnType<
+            typeof getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet
+          >
+        >,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<
+            ReturnType<
+              typeof getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet
+            >
+          >,
+          TError,
+          Awaited<
+            ReturnType<
+              typeof getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet
+            >
+          >
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet<
+  TData = Awaited<
+    ReturnType<typeof getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet>
+  >,
+  TError = HTTPValidationError,
+>(
+  boardId: string,
+  params?: GetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<
+          ReturnType<
+            typeof getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet
+          >
+        >,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Get Board Group Snapshot
+ */
+
+export function useGetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet<
+  TData = Awaited<
+    ReturnType<typeof getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet>
+  >,
+  TError = HTTPValidationError,
+>(
+  boardId: string,
+  params?: GetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<
+          ReturnType<
+            typeof getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet
+          >
+        >,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions =
+    getGetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetQueryOptions(
+      boardId,
+      params,
       options,
     );
 

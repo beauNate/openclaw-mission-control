@@ -54,7 +54,10 @@ import {
   listTaskCommentFeedApiV1ActivityTaskCommentsGet,
   streamTaskCommentFeedApiV1ActivityTaskCommentsStreamGet,
 } from "@/api/generated/activity/activity";
-import { getBoardSnapshotApiV1BoardsBoardIdSnapshotGet } from "@/api/generated/boards/boards";
+import {
+  getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet,
+  getBoardSnapshotApiV1BoardsBoardIdSnapshotGet,
+} from "@/api/generated/boards/boards";
 import {
   createBoardMemoryApiV1BoardsBoardIdMemoryPost,
   streamBoardMemoryApiV1BoardsBoardIdMemoryStreamGet,
@@ -70,6 +73,7 @@ import {
 import type {
   AgentRead,
   ApprovalRead,
+  BoardGroupSnapshot,
   BoardMemoryRead,
   BoardRead,
   TaskCardRead,
@@ -321,6 +325,12 @@ export default function BoardDetailPage() {
   const [board, setBoard] = useState<Board | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [groupSnapshot, setGroupSnapshot] = useState<BoardGroupSnapshot | null>(
+    null,
+  );
+  const [groupSnapshotError, setGroupSnapshotError] = useState<string | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -379,7 +389,9 @@ export default function BoardDetailPage() {
   const [isLiveFeedOpen, setIsLiveFeedOpen] = useState(false);
   const isLiveFeedOpenRef = useRef(false);
   const pushLiveFeed = useCallback((comment: TaskComment) => {
-    const alreadySeen = liveFeedRef.current.some((item) => item.id === comment.id);
+    const alreadySeen = liveFeedRef.current.some(
+      (item) => item.id === comment.id,
+    );
     setLiveFeed((prev) => {
       if (prev.some((item) => item.id === comment.id)) {
         return prev;
@@ -588,6 +600,7 @@ export default function BoardDetailPage() {
     setError(null);
     setApprovalsError(null);
     setChatError(null);
+    setGroupSnapshotError(null);
     try {
       const snapshotResult =
         await getBoardSnapshotApiV1BoardsBoardIdSnapshotGet(boardId);
@@ -600,12 +613,38 @@ export default function BoardDetailPage() {
       setAgents((snapshot.agents ?? []).map(normalizeAgent));
       setApprovals((snapshot.approvals ?? []).map(normalizeApproval));
       setChatMessages(snapshot.chat_messages ?? []);
+
+      try {
+        const groupResult =
+          await getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet(
+            boardId,
+            {
+              include_self: false,
+              include_done: false,
+              per_board_task_limit: 5,
+            },
+          );
+        if (groupResult.status === 200) {
+          setGroupSnapshot(groupResult.data);
+        } else {
+          setGroupSnapshot(null);
+        }
+      } catch (groupErr) {
+        const message =
+          groupErr instanceof Error
+            ? groupErr.message
+            : "Unable to load board group snapshot.";
+        setGroupSnapshotError(message);
+        setGroupSnapshot(null);
+      }
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Something went wrong.";
       setError(message);
       setApprovalsError(message);
       setChatError(message);
+      setGroupSnapshotError(message);
+      setGroupSnapshot(null);
     } finally {
       setIsLoading(false);
       setIsApprovalsLoading(false);
@@ -1381,9 +1420,7 @@ export default function BoardDetailPage() {
   };
 
   const postBoardChatMessage = useCallback(
-    async (
-      content: string,
-    ): Promise<{ ok: boolean; error: string | null }> => {
+    async (content: string): Promise<{ ok: boolean; error: string | null }> => {
       if (!isSignedIn || !boardId) {
         return { ok: false, error: "Sign in to send messages." };
       }
@@ -2163,10 +2200,15 @@ export default function BoardDetailPage() {
                       )
                     }
                     disabled={!isSignedIn || !boardId || isAgentsControlSending}
-                    className={cn("h-9 w-9 p-0", isAgentsPaused
-                      ? "border-amber-200 bg-amber-50/60 text-amber-700 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-800"
-                      : "")}
-                    aria-label={isAgentsPaused ? "Resume agents" : "Pause agents"}
+                    className={cn(
+                      "h-9 w-9 p-0",
+                      isAgentsPaused
+                        ? "border-amber-200 bg-amber-50/60 text-amber-700 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-800"
+                        : "",
+                    )}
+                    aria-label={
+                      isAgentsPaused ? "Resume agents" : "Pause agents"
+                    }
                     title={isAgentsPaused ? "Resume agents" : "Pause agents"}
                   >
                     {isAgentsPaused ? (
@@ -2284,6 +2326,204 @@ export default function BoardDetailPage() {
                 </div>
               ) : (
                 <>
+                  {viewMode === "list" ? (
+                    <>
+                      {groupSnapshotError ? (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 shadow-sm">
+                          {groupSnapshotError}
+                        </div>
+                      ) : null}
+
+                      {groupSnapshot?.group ? (
+                        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+                          <div className="border-b border-slate-200 px-5 py-4">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                  Related boards
+                                </p>
+                                <p className="mt-1 truncate text-sm font-semibold text-slate-900">
+                                  {groupSnapshot.group.name}
+                                </p>
+                                {groupSnapshot.group.description ? (
+                                  <p className="mt-1 max-w-3xl text-xs text-slate-500 line-clamp-2">
+                                    {groupSnapshot.group.description}
+                                  </p>
+                                ) : null}
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    router.push(
+                                      `/board-groups/${groupSnapshot.group?.id}`,
+                                    )
+                                  }
+                                  disabled={!groupSnapshot.group?.id}
+                                >
+                                  View group
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    router.push(`/boards/${boardId}/edit`)
+                                  }
+                                  disabled={!boardId}
+                                >
+                                  Settings
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="px-5 py-4">
+                            {groupSnapshot.boards &&
+                            groupSnapshot.boards.length ? (
+                              <div className="grid gap-4 md:grid-cols-2">
+                                {groupSnapshot.boards.map((item) => (
+                                  <div
+                                    key={item.board.id}
+                                    className="rounded-xl border border-slate-200 bg-slate-50/40 p-4"
+                                  >
+                                    <button
+                                      type="button"
+                                      className="group flex w-full items-start justify-between gap-3 text-left"
+                                      onClick={() =>
+                                        router.push(`/boards/${item.board.id}`)
+                                      }
+                                    >
+                                      <div className="min-w-0">
+                                        <p className="truncate text-sm font-semibold text-slate-900 group-hover:text-blue-600">
+                                          {item.board.name}
+                                        </p>
+                                        <p className="mt-1 text-xs text-slate-500">
+                                          Updated{" "}
+                                          {formatTaskTimestamp(
+                                            item.board.updated_at,
+                                          )}
+                                        </p>
+                                      </div>
+                                      <ArrowUpRight className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400 group-hover:text-blue-600" />
+                                    </button>
+
+                                    <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                                      <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-slate-700">
+                                        Inbox {item.task_counts?.inbox ?? 0}
+                                      </span>
+                                      <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-slate-700">
+                                        In progress{" "}
+                                        {item.task_counts?.in_progress ?? 0}
+                                      </span>
+                                      <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-slate-700">
+                                        Review {item.task_counts?.review ?? 0}
+                                      </span>
+                                    </div>
+
+                                    {item.tasks && item.tasks.length ? (
+                                      <ul className="mt-3 space-y-2">
+                                        {item.tasks.slice(0, 3).map((task) => (
+                                          <li
+                                            key={task.id}
+                                            className="rounded-lg border border-slate-200 bg-white p-3"
+                                          >
+                                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                              <div className="flex min-w-0 items-center gap-2">
+                                                <span
+                                                  className={cn(
+                                                    "rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide",
+                                                    statusBadgeClass(
+                                                      task.status,
+                                                    ),
+                                                  )}
+                                                >
+                                                  {task.status.replace(
+                                                    /_/g,
+                                                    " ",
+                                                  )}
+                                                </span>
+                                                <span
+                                                  className={cn(
+                                                    "rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide",
+                                                    priorityBadgeClass(
+                                                      task.priority,
+                                                    ),
+                                                  )}
+                                                >
+                                                  {task.priority}
+                                                </span>
+                                                <p className="truncate text-sm font-medium text-slate-900">
+                                                  {task.title}
+                                                </p>
+                                              </div>
+                                              <p className="text-xs text-slate-500">
+                                                {formatTaskTimestamp(
+                                                  task.updated_at,
+                                                )}
+                                              </p>
+                                            </div>
+                                            <p className="mt-2 truncate text-xs text-slate-600">
+                                              Assignee:{" "}
+                                              <span className="font-medium text-slate-900">
+                                                {task.assignee ?? "Unassigned"}
+                                              </span>
+                                            </p>
+                                          </li>
+                                        ))}
+                                        {item.tasks.length > 3 ? (
+                                          <li className="text-xs text-slate-500">
+                                            +{item.tasks.length - 3} more…
+                                          </li>
+                                        ) : null}
+                                      </ul>
+                                    ) : (
+                                      <p className="mt-3 text-sm text-slate-500">
+                                        No tasks in this snapshot.
+                                      </p>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-slate-500">
+                                No other boards in this group yet.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ) : groupSnapshot ? (
+                        <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
+                          <p className="font-semibold text-slate-900">
+                            No board group configured
+                          </p>
+                          <p className="mt-1 text-sm text-slate-600">
+                            Assign this board to a group to give agents
+                            visibility into related work.
+                          </p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                router.push(`/boards/${boardId}/edit`)
+                              }
+                              disabled={!boardId}
+                            >
+                              Open settings
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => router.push("/board-groups")}
+                            >
+                              View groups
+                            </Button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </>
+                  ) : null}
+
                   {viewMode === "board" ? (
                     <TaskBoard
                       tasks={tasks}
@@ -3113,7 +3353,9 @@ export default function BoardDetailPage() {
         <DialogContent aria-label="Agent controls">
           <DialogHeader>
             <DialogTitle>
-              {agentsControlAction === "pause" ? "Pause agents" : "Resume agents"}
+              {agentsControlAction === "pause"
+                ? "Pause agents"
+                : "Resume agents"}
             </DialogTitle>
             <DialogDescription>
               {agentsControlAction === "pause"
@@ -3150,7 +3392,10 @@ export default function BoardDetailPage() {
             >
               Cancel
             </Button>
-            <Button onClick={handleConfirmAgentsControl} disabled={isAgentsControlSending}>
+            <Button
+              onClick={handleConfirmAgentsControl}
+              disabled={isAgentsControlSending}
+            >
               {isAgentsControlSending
                 ? "Sending…"
                 : agentsControlAction === "pause"

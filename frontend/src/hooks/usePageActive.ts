@@ -8,7 +8,8 @@ const computeIsActive = () => {
     document.visibilityState === "visible" &&
     // `hidden` is a more widely-supported signal; keep both for safety.
     !document.hidden;
-  const focused = typeof document.hasFocus === "function" ? document.hasFocus() : true;
+  const focused =
+    typeof document.hasFocus === "function" ? document.hasFocus() : true;
   return visible && focused;
 };
 
@@ -39,4 +40,3 @@ export function usePageActive(): boolean {
 
   return active;
 }
-

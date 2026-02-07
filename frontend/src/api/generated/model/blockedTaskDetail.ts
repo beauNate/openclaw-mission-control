@@ -6,6 +6,6 @@
  */
 
 export interface BlockedTaskDetail {
-  blocked_by_task_ids?: string[];
   message: string;
+  blocked_by_task_ids?: string[];
 }

@@ -67,7 +67,7 @@ export default function EditGatewayPage() {
     "idle" | "checking" | "success" | "error"
   >("idle");
   const [gatewayCheckMessage, setGatewayCheckMessage] = useState<string | null>(
-    null
+    null,
   );
 
   const [error, setError] = useState<string | null>(null);
@@ -156,7 +156,7 @@ export default function EditGatewayPage() {
     } catch (err) {
       setGatewayCheckStatus("error");
       setGatewayCheckMessage(
-        err instanceof Error ? err.message : "Unable to reach gateway."
+        err instanceof Error ? err.message : "Unable to reach gateway.",
       );
     }
   };
@@ -342,7 +342,6 @@ export default function EditGatewayPage() {
                   />
                 </div>
               </div>
-
 
               {errorMessage ? (
                 <p className="text-sm text-red-500">{errorMessage}</p>

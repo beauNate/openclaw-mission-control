@@ -17,6 +17,7 @@ class Board(TenantScoped, table=True):
     name: str
     slug: str = Field(index=True)
     gateway_id: UUID | None = Field(default=None, foreign_key="gateways.id", index=True)
+    board_group_id: UUID | None = Field(default=None, foreign_key="board_groups.id", index=True)
     board_type: str = Field(default="goal", index=True)
     objective: str | None = None
     success_metrics: dict[str, object] | None = Field(default=None, sa_column=Column(JSON))

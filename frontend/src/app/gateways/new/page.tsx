@@ -46,7 +46,7 @@ export default function NewGatewayPage() {
   const [gatewayUrl, setGatewayUrl] = useState("");
   const [gatewayToken, setGatewayToken] = useState("");
   const [mainSessionKey, setMainSessionKey] = useState(
-    DEFAULT_MAIN_SESSION_KEY
+    DEFAULT_MAIN_SESSION_KEY,
   );
   const [workspaceRoot, setWorkspaceRoot] = useState(DEFAULT_WORKSPACE_ROOT);
 
@@ -55,7 +55,7 @@ export default function NewGatewayPage() {
     "idle" | "checking" | "success" | "error"
   >("idle");
   const [gatewayCheckMessage, setGatewayCheckMessage] = useState<string | null>(
-    null
+    null,
   );
 
   const [error, setError] = useState<string | null>(null);
@@ -121,7 +121,7 @@ export default function NewGatewayPage() {
     } catch (err) {
       setGatewayCheckStatus("error");
       setGatewayCheckMessage(
-        err instanceof Error ? err.message : "Unable to reach gateway."
+        err instanceof Error ? err.message : "Unable to reach gateway.",
       );
     }
   };
@@ -167,7 +167,9 @@ export default function NewGatewayPage() {
       <SignedOut>
         <div className="col-span-2 flex min-h-[calc(100vh-64px)] items-center justify-center bg-slate-50 p-10 text-center">
           <div className="rounded-xl border border-slate-200 bg-white px-8 py-6 shadow-sm">
-            <p className="text-sm text-slate-600">Sign in to create a gateway.</p>
+            <p className="text-sm text-slate-600">
+              Sign in to create a gateway.
+            </p>
             <SignInButton mode="modal" forceRedirectUrl="/gateways/new">
               <Button className="mt-4">Sign in</Button>
             </SignInButton>
@@ -301,7 +303,6 @@ export default function NewGatewayPage() {
                   />
                 </div>
               </div>
-
 
               {error ? <p className="text-sm text-red-500">{error}</p> : null}
 

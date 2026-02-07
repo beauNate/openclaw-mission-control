@@ -5,7 +5,13 @@ export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { SignInButton, SignedIn, SignedOut, useAuth, useUser } from "@/auth/clerk";
+import {
+  SignInButton,
+  SignedIn,
+  SignedOut,
+  useAuth,
+  useUser,
+} from "@/auth/clerk";
 import { Globe, Info, RotateCcw, Save, User } from "lucide-react";
 
 import { ApiError } from "@/api/mutator";
@@ -35,15 +41,16 @@ export default function OnboardingPage() {
   const [timezone, setTimezone] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const meQuery = useGetMeApiV1UsersMeGet<getMeApiV1UsersMeGetResponse, ApiError>(
-    {
-      query: {
-        enabled: Boolean(isSignedIn),
-        retry: false,
-        refetchOnMount: "always",
-      },
+  const meQuery = useGetMeApiV1UsersMeGet<
+    getMeApiV1UsersMeGetResponse,
+    ApiError
+  >({
+    query: {
+      enabled: Boolean(isSignedIn),
+      retry: false,
+      refetchOnMount: "always",
     },
-  );
+  });
 
   const updateMeMutation = useUpdateMeApiV1UsersMePatch<ApiError>({
     mutation: {
@@ -63,12 +70,12 @@ export default function OnboardingPage() {
 
   const clerkFallbackName =
     user?.fullName ?? user?.firstName ?? user?.username ?? "";
-  const resolvedName =
-    name.trim()
-      ? name
-      : profile?.preferred_name ?? profile?.name ?? clerkFallbackName ?? "";
-  const resolvedTimezone =
-    timezone.trim() ? timezone : profile?.timezone ?? "";
+  const resolvedName = name.trim()
+    ? name
+    : (profile?.preferred_name ?? profile?.name ?? clerkFallbackName ?? "");
+  const resolvedTimezone = timezone.trim()
+    ? timezone
+    : (profile?.timezone ?? "");
 
   const requiredMissing = useMemo(
     () => [resolvedName, resolvedTimezone].some((value) => !value.trim()),
@@ -77,7 +84,9 @@ export default function OnboardingPage() {
 
   const timezones = useMemo(() => {
     if (typeof Intl !== "undefined" && "supportedValuesOf" in Intl) {
-      return (Intl as typeof Intl & { supportedValuesOf: (key: string) => string[] })
+      return (
+        Intl as typeof Intl & { supportedValuesOf: (key: string) => string[] }
+      )
         .supportedValuesOf("timeZone")
         .sort();
     }

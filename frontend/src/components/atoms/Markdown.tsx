@@ -1,12 +1,66 @@
 "use client";
 
-import { memo } from "react";
+import { memo, type HTMLAttributes } from "react";
 
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 
 import { cn } from "@/lib/utils";
+
+type MarkdownCodeProps = HTMLAttributes<HTMLElement> & {
+  node?: unknown;
+  inline?: boolean;
+};
+
+const MARKDOWN_CODE_COMPONENTS: Components = {
+  pre: ({ node: _node, className, ...props }) => (
+    <pre
+      className={cn(
+        "my-3 overflow-x-auto rounded-lg bg-slate-950 p-3 text-xs leading-relaxed text-slate-100",
+        className,
+      )}
+      {...props}
+    />
+  ),
+  code: (rawProps) => {
+    // react-markdown passes `inline`, but the public `Components` typing doesn't
+    // currently include it, so we pluck it safely here without leaking it to DOM.
+    const {
+      node: _node,
+      inline,
+      className,
+      children,
+      ...props
+    } = rawProps as MarkdownCodeProps;
+    const codeText = Array.isArray(children)
+      ? children.join("")
+      : String(children ?? "");
+    const isInline =
+      typeof inline === "boolean" ? inline : !codeText.includes("\n");
+
+    if (isInline) {
+      return (
+        <code
+          className={cn(
+            "rounded bg-slate-100 px-1 py-0.5 font-mono text-[0.85em] text-slate-900",
+            className,
+          )}
+          {...props}
+        >
+          {children}
+        </code>
+      );
+    }
+
+    // For fenced blocks, the parent <pre> handles the box styling.
+    return (
+      <code className={cn("font-mono", className)} {...props}>
+        {children}
+      </code>
+    );
+  },
+};
 
 const MARKDOWN_TABLE_COMPONENTS: Components = {
   table: ({ node: _node, className, ...props }) => (
@@ -42,6 +96,7 @@ const MARKDOWN_TABLE_COMPONENTS: Components = {
 
 const MARKDOWN_COMPONENTS_BASIC: Components = {
   ...MARKDOWN_TABLE_COMPONENTS,
+  ...MARKDOWN_CODE_COMPONENTS,
   p: ({ node: _node, className, ...props }) => (
     <p className={cn("mb-2 last:mb-0", className)} {...props} />
   ),
@@ -72,21 +127,6 @@ const MARKDOWN_COMPONENTS_DESCRIPTION: Components = {
   ),
   h3: ({ node: _node, className, ...props }) => (
     <h3 className={cn("mb-2 text-sm font-semibold", className)} {...props} />
-  ),
-  code: ({ node: _node, className, ...props }) => (
-    <code
-      className={cn("rounded bg-slate-100 px-1 py-0.5 text-xs", className)}
-      {...props}
-    />
-  ),
-  pre: ({ node: _node, className, ...props }) => (
-    <pre
-      className={cn(
-        "overflow-auto rounded-lg bg-slate-900 p-3 text-xs text-slate-100",
-        className,
-      )}
-      {...props}
-    />
   ),
 };
 
@@ -119,4 +159,3 @@ export const Markdown = memo(function Markdown({
 });
 
 Markdown.displayName = "Markdown";
-

@@ -67,6 +67,25 @@ curl -s "$BASE_URL/api/v1/agent/boards/$BOARD_ID/tasks?status=inbox&unassigned=t
   -H "X-Agent-Token: {{ auth_token }}"
 ```
 
+3b) Pull cross-board context (Board Groups, if configured):
+```bash
+curl -s "$BASE_URL/api/v1/boards/$BOARD_ID/group-snapshot?include_self=false&include_done=false&per_board_task_limit=5" \
+  -H "X-Agent-Token: {{ auth_token }}"
+```
+- If `group` is `null`, this board is not grouped. Skip.
+- Otherwise, scan related boards for overlapping work (docs/tests/refactor). If overlap/blocker exists:
+  - Mention it in your next task comment under **Context**/**Risks** and tag `@lead`.
+
+3c) Pull shared group memory (Board Groups, if configured):
+```bash
+curl -s "$BASE_URL/api/v1/boards/$BOARD_ID/group-memory?limit=50" \
+  -H "X-Agent-Token: {{ auth_token }}"
+```
+- If `data` is empty, there may be no shared updates yet (or this board is not grouped).
+- Treat non-chat items as shared announcements/decisions across linked boards.
+- Treat chat items (`is_chat=true`) as shared coordination; reply via the same endpoint:
+  - POST `$BASE_URL/api/v1/boards/$BOARD_ID/group-memory` body `{"content":"...","tags":["chat"]}`
+
 4) If you already have an in_progress task, continue working it and do not claim another.
 
 5) If you do NOT have an in_progress task:

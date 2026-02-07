@@ -3,7 +3,9 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { ReactNode } from "react";
 
-function isLikelyValidClerkPublishableKey(key: string | undefined): key is string {
+function isLikelyValidClerkPublishableKey(
+  key: string | undefined,
+): key is string {
   if (!key) return false;
   // Clerk publishable keys look like: pk_test_... or pk_live_...
   // In CI we want builds to stay secretless; if the key isn't present/valid,
@@ -26,5 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  return <ClerkProvider publishableKey={publishableKey}>{children}</ClerkProvider>;
+  return (
+    <ClerkProvider publishableKey={publishableKey}>{children}</ClerkProvider>
+  );
 }

@@ -92,7 +92,9 @@ export default function GatewayDetailPage() {
 
   const agents = useMemo(
     () =>
-      agentsQuery.data?.status === 200 ? agentsQuery.data.data.items ?? [] : [],
+      agentsQuery.data?.status === 200
+        ? (agentsQuery.data.data.items ?? [])
+        : [],
     [agentsQuery.data],
   );
 
@@ -102,7 +104,7 @@ export default function GatewayDetailPage() {
 
   const title = useMemo(
     () => (gateway?.name ? gateway.name : "Gateway"),
-    [gateway?.name]
+    [gateway?.name],
   );
 
   return (
@@ -111,7 +113,10 @@ export default function GatewayDetailPage() {
         <div className="col-span-2 flex min-h-[calc(100vh-64px)] items-center justify-center bg-slate-50 p-10 text-center">
           <div className="rounded-xl border border-slate-200 bg-white px-8 py-6 shadow-sm">
             <p className="text-sm text-slate-600">Sign in to view a gateway.</p>
-            <SignInButton mode="modal" forceRedirectUrl={`/gateways/${gatewayId}`}>
+            <SignInButton
+              mode="modal"
+              forceRedirectUrl={`/gateways/${gatewayId}`}
+            >
               <Button className="mt-4">Sign in</Button>
             </SignInButton>
           </div>
@@ -138,7 +143,9 @@ export default function GatewayDetailPage() {
                   Back to gateways
                 </Button>
                 {gatewayId ? (
-                  <Button onClick={() => router.push(`/gateways/${gatewayId}/edit`)}>
+                  <Button
+                    onClick={() => router.push(`/gateways/${gatewayId}/edit`)}
+                  >
                     Edit gateway
                   </Button>
                 ) : null}
@@ -184,13 +191,17 @@ export default function GatewayDetailPage() {
                     </div>
                     <div className="mt-4 space-y-3 text-sm text-slate-700">
                       <div>
-                        <p className="text-xs uppercase text-slate-400">Gateway URL</p>
+                        <p className="text-xs uppercase text-slate-400">
+                          Gateway URL
+                        </p>
                         <p className="mt-1 text-sm font-medium text-slate-900">
                           {gateway.url}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs uppercase text-slate-400">Token</p>
+                        <p className="text-xs uppercase text-slate-400">
+                          Token
+                        </p>
                         <p className="mt-1 text-sm font-medium text-slate-900">
                           {maskToken(gateway.token)}
                         </p>
@@ -212,20 +223,26 @@ export default function GatewayDetailPage() {
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs uppercase text-slate-400">Workspace root</p>
+                        <p className="text-xs uppercase text-slate-400">
+                          Workspace root
+                        </p>
                         <p className="mt-1 text-sm font-medium text-slate-900">
                           {gateway.workspace_root}
                         </p>
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div>
-                          <p className="text-xs uppercase text-slate-400">Created</p>
+                          <p className="text-xs uppercase text-slate-400">
+                            Created
+                          </p>
                           <p className="mt-1 text-sm font-medium text-slate-900">
                             {formatTimestamp(gateway.created_at)}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs uppercase text-slate-400">Updated</p>
+                          <p className="text-xs uppercase text-slate-400">
+                            Updated
+                          </p>
                           <p className="mt-1 text-sm font-medium text-slate-900">
                             {formatTimestamp(gateway.updated_at)}
                           </p>

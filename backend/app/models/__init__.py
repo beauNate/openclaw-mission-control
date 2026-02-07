@@ -1,6 +1,8 @@
 from app.models.activity_events import ActivityEvent
 from app.models.agents import Agent
 from app.models.approvals import Approval
+from app.models.board_group_memory import BoardGroupMemory
+from app.models.board_groups import BoardGroup
 from app.models.board_memory import BoardMemory
 from app.models.board_onboarding import BoardOnboardingSession
 from app.models.boards import Board
@@ -14,8 +16,10 @@ __all__ = [
     "ActivityEvent",
     "Agent",
     "Approval",
+    "BoardGroupMemory",
     "BoardMemory",
     "BoardOnboardingSession",
+    "BoardGroup",
     "Board",
     "Gateway",
     "TaskDependency",

@@ -10,10 +10,10 @@ import type { ApprovalCreateStatus } from "./approvalCreateStatus";
 
 export interface ApprovalCreate {
   action_type: string;
-  agent_id?: string | null;
-  confidence: number;
+  task_id?: string | null;
   payload?: ApprovalCreatePayload;
+  confidence: number;
   rubric_scores?: ApprovalCreateRubricScores;
   status?: ApprovalCreateStatus;
-  task_id?: string | null;
+  agent_id?: string | null;
 }

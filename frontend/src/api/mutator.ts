@@ -35,7 +35,7 @@ const resolveClerkToken = async (): Promise<string | null> => {
 
 export const customFetch = async <T>(
   url: string,
-  options: RequestInit
+  options: RequestInit,
 ): Promise<T> => {
   const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL;
   if (!rawBaseUrl) {
@@ -79,7 +79,11 @@ export const customFetch = async <T>(
         message = detail;
       } else if (Array.isArray(detail) && detail.length) {
         const first = detail[0] as { msg?: unknown };
-        if (first && typeof first === "object" && typeof first.msg === "string") {
+        if (
+          first &&
+          typeof first === "object" &&
+          typeof first.msg === "string"
+        ) {
           message = first.msg;
         }
       }
@@ -110,5 +114,9 @@ export const customFetch = async <T>(
     } as T;
   }
   const text = await response.text().catch(() => "");
-  return { data: text, status: response.status, headers: response.headers } as T;
+  return {
+    data: text,
+    status: response.status,
+    headers: response.headers,
+  } as T;
 };

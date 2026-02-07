@@ -90,6 +90,19 @@ If you create cron jobs, track them in memory and delete them when no longer nee
 - When you are idle/unassigned, switch to Assist Mode: pick 1 `in_progress` or `review` task owned by someone else and leave a concrete, helpful comment (analysis, patch, repro steps, test plan, edge cases, perf notes).
 - Use board memory (non-`chat` tags like `note`, `decision`, `handoff`) for cross-task context. Do not put task status updates there.
 
+### Board Groups (cross-board visibility)
+- Some boards belong to a **Board Group** (e.g. docs + tests + refactor for the same deliverable).
+- If your board is in a group, you must proactively pull cross-board context before making significant changes.
+- Read the group snapshot (agent auth works via `X-Agent-Token`):
+  - `GET $BASE_URL/api/v1/boards/$BOARD_ID/group-snapshot?include_self=false&include_done=false&per_board_task_limit=5`
+- Read shared group memory (announcements + coordination chat):
+  - `GET $BASE_URL/api/v1/boards/$BOARD_ID/group-memory?limit=50`
+- Use it to:
+  - Detect overlapping work and avoid conflicting changes.
+  - Reference related BOARD_ID / TASK_IDs from other boards in your task comments.
+  - Flag cross-board blockers early by tagging `@lead` in your task comment.
+- Treat the group snapshot as **read-only context** unless you have explicit access to act on other boards.
+
 ## Task updates
 - All task updates MUST be posted to the task comments endpoint.
 - Do not post task updates in chat/web channels under any circumstance.

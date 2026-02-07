@@ -42,7 +42,7 @@ import {
   getListBoardsApiV1BoardsGetQueryKey,
   useListBoardsApiV1BoardsGet,
 } from "@/api/generated/boards/boards";
-import type { AgentRead, BoardRead } from "@/api/generated/model";
+import type { AgentRead } from "@/api/generated/model";
 
 const parseTimestamp = (value?: string | null) => {
   if (!value) return null;
@@ -121,13 +121,17 @@ export default function AgentsPage() {
 
   const boards = useMemo(
     () =>
-      boardsQuery.data?.status === 200 ? boardsQuery.data.data.items ?? [] : [],
-    [boardsQuery.data]
+      boardsQuery.data?.status === 200
+        ? (boardsQuery.data.data.items ?? [])
+        : [],
+    [boardsQuery.data],
   );
   const agents = useMemo(
     () =>
-      agentsQuery.data?.status === 200 ? agentsQuery.data.data.items ?? [] : [],
-    [agentsQuery.data]
+      agentsQuery.data?.status === 200
+        ? (agentsQuery.data.data.items ?? [])
+        : [],
+    [agentsQuery.data],
   );
 
   const deleteMutation = useDeleteAgentApiV1AgentsAgentIdDelete<
@@ -139,20 +143,25 @@ export default function AgentsPage() {
         onMutate: async ({ agentId }) => {
           await queryClient.cancelQueries({ queryKey: agentsKey });
           const previous =
-            queryClient.getQueryData<listAgentsApiV1AgentsGetResponse>(agentsKey);
+            queryClient.getQueryData<listAgentsApiV1AgentsGetResponse>(
+              agentsKey,
+            );
           if (previous && previous.status === 200) {
             const nextItems = previous.data.items.filter(
-              (agent) => agent.id !== agentId
+              (agent) => agent.id !== agentId,
             );
             const removedCount = previous.data.items.length - nextItems.length;
-            queryClient.setQueryData<listAgentsApiV1AgentsGetResponse>(agentsKey, {
-              ...previous,
-              data: {
-                ...previous.data,
-                items: nextItems,
-                total: Math.max(0, previous.data.total - removedCount),
+            queryClient.setQueryData<listAgentsApiV1AgentsGetResponse>(
+              agentsKey,
+              {
+                ...previous,
+                data: {
+                  ...previous.data,
+                  items: nextItems,
+                  total: Math.max(0, previous.data.total - removedCount),
+                },
               },
-            });
+            );
           }
           return { previous };
         },
@@ -170,103 +179,99 @@ export default function AgentsPage() {
         },
       },
     },
-    queryClient
+    queryClient,
   );
 
   const sortedAgents = useMemo(() => [...agents], [agents]);
-
 
   const handleDelete = () => {
     if (!deleteTarget) return;
     deleteMutation.mutate({ agentId: deleteTarget.id });
   };
 
-  const columns = useMemo<ColumnDef<AgentRead>[]>(
-    () => {
-      const resolveBoardName = (agent: AgentRead) =>
-        boards.find((board) => board.id === agent.board_id)?.name ?? "—";
+  const columns = useMemo<ColumnDef<AgentRead>[]>(() => {
+    const resolveBoardName = (agent: AgentRead) =>
+      boards.find((board) => board.id === agent.board_id)?.name ?? "—";
 
-      return [
-        {
-          accessorKey: "name",
-          header: "Agent",
-          cell: ({ row }) => (
-            <Link href={`/agents/${row.original.id}`} className="group block">
-              <p className="text-sm font-medium text-slate-900 group-hover:text-blue-600">
-                {row.original.name}
-              </p>
-              <p className="text-xs text-slate-500">ID {row.original.id}</p>
+    return [
+      {
+        accessorKey: "name",
+        header: "Agent",
+        cell: ({ row }) => (
+          <Link href={`/agents/${row.original.id}`} className="group block">
+            <p className="text-sm font-medium text-slate-900 group-hover:text-blue-600">
+              {row.original.name}
+            </p>
+            <p className="text-xs text-slate-500">ID {row.original.id}</p>
+          </Link>
+        ),
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => (
+          <StatusPill status={row.original.status ?? "unknown"} />
+        ),
+      },
+      {
+        accessorKey: "openclaw_session_id",
+        header: "Session",
+        cell: ({ row }) => (
+          <span className="text-sm text-slate-700">
+            {truncate(row.original.openclaw_session_id)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "board_id",
+        header: "Board",
+        cell: ({ row }) => (
+          <span className="text-sm text-slate-700">
+            {resolveBoardName(row.original)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "last_seen_at",
+        header: "Last seen",
+        cell: ({ row }) => (
+          <span className="text-sm text-slate-700">
+            {formatRelative(row.original.last_seen_at)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "updated_at",
+        header: "Updated",
+        cell: ({ row }) => (
+          <span className="text-sm text-slate-700">
+            {formatTimestamp(row.original.updated_at)}
+          </span>
+        ),
+      },
+      {
+        id: "actions",
+        header: "",
+        cell: ({ row }) => (
+          <div className="flex justify-end gap-2">
+            <Link
+              href={`/agents/${row.original.id}/edit`}
+              className={buttonVariants({ variant: "ghost", size: "sm" })}
+            >
+              Edit
             </Link>
-          ),
-        },
-        {
-          accessorKey: "status",
-          header: "Status",
-          cell: ({ row }) => (
-            <StatusPill status={row.original.status ?? "unknown"} />
-          ),
-        },
-        {
-          accessorKey: "openclaw_session_id",
-          header: "Session",
-          cell: ({ row }) => (
-            <span className="text-sm text-slate-700">
-              {truncate(row.original.openclaw_session_id)}
-            </span>
-          ),
-        },
-        {
-          accessorKey: "board_id",
-          header: "Board",
-          cell: ({ row }) => (
-            <span className="text-sm text-slate-700">
-              {resolveBoardName(row.original)}
-            </span>
-          ),
-        },
-        {
-          accessorKey: "last_seen_at",
-          header: "Last seen",
-          cell: ({ row }) => (
-            <span className="text-sm text-slate-700">
-              {formatRelative(row.original.last_seen_at)}
-            </span>
-          ),
-        },
-        {
-          accessorKey: "updated_at",
-          header: "Updated",
-          cell: ({ row }) => (
-            <span className="text-sm text-slate-700">
-              {formatTimestamp(row.original.updated_at)}
-            </span>
-          ),
-        },
-        {
-          id: "actions",
-          header: "",
-          cell: ({ row }) => (
-            <div className="flex justify-end gap-2">
-              <Link
-                href={`/agents/${row.original.id}/edit`}
-                className={buttonVariants({ variant: "ghost", size: "sm" })}
-              >
-                Edit
-              </Link>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setDeleteTarget(row.original)}
-              >
-                Delete
-              </Button>
-            </div>
-          ),
-        },
-      ];
-    },
-    [boards]
-  );
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDeleteTarget(row.original)}
+            >
+              Delete
+            </Button>
+          </div>
+        ),
+      },
+    ];
+  }, [boards]);
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
@@ -330,7 +335,7 @@ export default function AgentsPage() {
                               ? null
                               : flexRender(
                                   header.column.columnDef.header,
-                                  header.getContext()
+                                  header.getContext(),
                                 )}
                           </th>
                         ))}
@@ -341,7 +346,9 @@ export default function AgentsPage() {
                     {agentsQuery.isLoading ? (
                       <tr>
                         <td colSpan={columns.length} className="px-6 py-8">
-                          <span className="text-sm text-slate-500">Loading…</span>
+                          <span className="text-sm text-slate-500">
+                            Loading…
+                          </span>
                         </td>
                       </tr>
                     ) : table.getRowModel().rows.length ? (
@@ -351,7 +358,7 @@ export default function AgentsPage() {
                             <td key={cell.id} className="px-6 py-4">
                               {flexRender(
                                 cell.column.columnDef.cell,
-                                cell.getContext()
+                                cell.getContext(),
                               )}
                             </td>
                           ))}
@@ -386,7 +393,10 @@ export default function AgentsPage() {
                             </p>
                             <Link
                               href="/agents/new"
-                              className={buttonVariants({ size: "md", variant: "primary" })}
+                              className={buttonVariants({
+                                size: "md",
+                                variant: "primary",
+                              })}
                             >
                               Create your first agent
                             </Link>
@@ -420,7 +430,8 @@ export default function AgentsPage() {
           <DialogHeader>
             <DialogTitle>Delete agent</DialogTitle>
             <DialogDescription>
-              This will remove {deleteTarget?.name}. This action cannot be undone.
+              This will remove {deleteTarget?.name}. This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
           {deleteMutation.error ? (

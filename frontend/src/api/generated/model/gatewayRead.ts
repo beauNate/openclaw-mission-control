@@ -6,12 +6,12 @@
  */
 
 export interface GatewayRead {
-  created_at: string;
-  id: string;
-  main_session_key: string;
   name: string;
-  token?: string | null;
-  updated_at: string;
   url: string;
+  main_session_key: string;
   workspace_root: string;
+  id: string;
+  token?: string | null;
+  created_at: string;
+  updated_at: string;
 }

@@ -12,6 +12,7 @@ class BoardBase(SQLModel):
     name: str
     slug: str
     gateway_id: UUID | None = None
+    board_group_id: UUID | None = None
     board_type: str = "goal"
     objective: str | None = None
     success_metrics: dict[str, object] | None = None
@@ -35,6 +36,7 @@ class BoardUpdate(SQLModel):
     name: str | None = None
     slug: str | None = None
     gateway_id: UUID | None = None
+    board_group_id: UUID | None = None
     board_type: str | None = None
     objective: str | None = None
     success_metrics: dict[str, object] | None = None

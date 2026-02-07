@@ -65,7 +65,7 @@ const getBoardOptions = (boards: BoardRead[]): SearchableSelectOption[] =>
   }));
 
 const normalizeIdentityProfile = (
-  profile: IdentityProfile
+  profile: IdentityProfile,
 ): IdentityProfile | null => {
   const normalized: IdentityProfile = {
     role: profile.role.trim(),
@@ -114,7 +114,7 @@ export default function NewAgentPage() {
   });
 
   const boards =
-    boardsQuery.data?.status === 200 ? boardsQuery.data.data.items ?? [] : [];
+    boardsQuery.data?.status === 200 ? (boardsQuery.data.data.items ?? []) : [];
   const displayBoardId = boardId || boards[0]?.id || "";
   const isLoading = boardsQuery.isLoading || createAgentMutation.isPending;
   const errorMessage = error ?? boardsQuery.error?.message ?? null;
@@ -141,10 +141,9 @@ export default function NewAgentPage() {
           every: heartbeatEvery.trim() || "10m",
           target: heartbeatTarget,
         },
-        identity_profile: normalizeIdentityProfile(identityProfile) as unknown as Record<
-          string,
-          unknown
-        > | null,
+        identity_profile: normalizeIdentityProfile(
+          identityProfile,
+        ) as unknown as Record<string, unknown> | null,
         soul_template: soulTemplate.trim() || null,
       },
     });
@@ -155,7 +154,9 @@ export default function NewAgentPage() {
       <SignedOut>
         <div className="col-span-2 flex min-h-[calc(100vh-64px)] items-center justify-center bg-slate-50 p-10 text-center">
           <div className="rounded-xl border border-slate-200 bg-white px-8 py-6 shadow-sm">
-            <p className="text-sm text-slate-600">Sign in to create an agent.</p>
+            <p className="text-sm text-slate-600">
+              Sign in to create an agent.
+            </p>
             <SignInButton
               mode="modal"
               forceRedirectUrl="/agents/new"
@@ -318,7 +319,9 @@ export default function NewAgentPage() {
                     </label>
                     <Input
                       value={heartbeatEvery}
-                      onChange={(event) => setHeartbeatEvery(event.target.value)}
+                      onChange={(event) =>
+                        setHeartbeatEvery(event.target.value)
+                      }
                       placeholder="e.g. 10m"
                       disabled={isLoading}
                     />

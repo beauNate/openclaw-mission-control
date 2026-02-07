@@ -11,11 +11,26 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    "coverage/**",
     "next-env.d.ts",
     "tailwind.config.*",
     "postcss.config.*",
     "orval.config.*",
   ]),
+  {
+    rules: {
+      // We intentionally prefix unused destructured props with "_" to avoid
+      // passing them to DOM elements (e.g. react-markdown's `node` prop).
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

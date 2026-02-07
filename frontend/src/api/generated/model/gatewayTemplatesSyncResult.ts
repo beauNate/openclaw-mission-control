@@ -7,11 +7,11 @@
 import type { GatewayTemplatesSyncError } from "./gatewayTemplatesSyncError";
 
 export interface GatewayTemplatesSyncResult {
-  agents_skipped: number;
-  agents_updated: number;
-  errors?: GatewayTemplatesSyncError[];
   gateway_id: string;
   include_main: boolean;
-  main_updated: boolean;
   reset_sessions: boolean;
+  agents_updated: number;
+  agents_skipped: number;
+  main_updated: boolean;
+  errors?: GatewayTemplatesSyncError[];
 }
