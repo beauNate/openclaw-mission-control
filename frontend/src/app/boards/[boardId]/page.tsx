@@ -206,7 +206,9 @@ const resolveBoardAccess = (
   if (member.all_boards_read) {
     return { canRead: true, canWrite: false };
   }
-  const entry = member.board_access?.find((access) => access.board_id === boardId);
+  const entry = member.board_access?.find(
+    (access) => access.board_id === boardId,
+  );
   if (!entry) {
     return { canRead: false, canWrite: false };
   }
@@ -2199,7 +2201,9 @@ export default function BoardDetailPage() {
     async (approvalId: string, status: "approved" | "rejected") => {
       if (!isSignedIn || !boardId) return;
       if (!canWrite) {
-        pushToast("Read-only access. You do not have permission to update approvals.");
+        pushToast(
+          "Read-only access. You do not have permission to update approvals.",
+        );
         return;
       }
       setApprovalsUpdatingId(approvalId);
@@ -3033,7 +3037,9 @@ export default function BoardDetailPage() {
                   <Button
                     size="sm"
                     onClick={handlePostComment}
-                    disabled={!canWrite || isPostingComment || !newComment.trim()}
+                    disabled={
+                      !canWrite || isPostingComment || !newComment.trim()
+                    }
                     title={canWrite ? "Send message" : "Read-only access"}
                   >
                     {isPostingComment ? "Sending…" : "Send message"}
@@ -3516,7 +3522,10 @@ export default function BoardDetailPage() {
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateTask} disabled={!canWrite || isCreating}>
+            <Button
+              onClick={handleCreateTask}
+              disabled={!canWrite || isCreating}
+            >
               {isCreating ? "Creating…" : "Create task"}
             </Button>
           </DialogFooter>
@@ -3611,9 +3620,7 @@ export default function BoardDetailPage() {
                     toast.tone === "error" ? "bg-rose-500" : "bg-emerald-500",
                   )}
                 />
-                <p className="flex-1 text-sm text-slate-700">
-                  {toast.message}
-                </p>
+                <p className="flex-1 text-sm text-slate-700">{toast.message}</p>
                 <button
                   type="button"
                   className="text-xs text-slate-400 hover:text-slate-600"

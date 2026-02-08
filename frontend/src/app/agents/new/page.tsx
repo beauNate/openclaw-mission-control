@@ -214,184 +214,189 @@ export default function NewAgentPage() {
                     Basic configuration
                   </p>
                   <div className="mt-4 space-y-6">
-                  <div className="grid gap-6 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-900">
-                        Agent name <span className="text-red-500">*</span>
-                      </label>
-                      <Input
-                        value={name}
-                        onChange={(event) => setName(event.target.value)}
-                        placeholder="e.g. Deploy bot"
-                        disabled={isLoading}
-                      />
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-900">
+                          Agent name <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                          value={name}
+                          onChange={(event) => setName(event.target.value)}
+                          placeholder="e.g. Deploy bot"
+                          disabled={isLoading}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-900">
+                          Role
+                        </label>
+                        <Input
+                          value={identityProfile.role}
+                          onChange={(event) =>
+                            setIdentityProfile((current) => ({
+                              ...current,
+                              role: event.target.value,
+                            }))
+                          }
+                          placeholder="e.g. Founder, Social Media Manager"
+                          disabled={isLoading}
+                        />
+                      </div>
                     </div>
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-900">
+                          Board <span className="text-red-500">*</span>
+                        </label>
+                        <SearchableSelect
+                          ariaLabel="Select board"
+                          value={displayBoardId}
+                          onValueChange={setBoardId}
+                          options={getBoardOptions(boards)}
+                          placeholder="Select board"
+                          searchPlaceholder="Search boards..."
+                          emptyMessage="No matching boards."
+                          triggerClassName="w-full h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                          contentClassName="rounded-xl border border-slate-200 shadow-lg"
+                          itemClassName="px-4 py-3 text-sm text-slate-700 data-[selected=true]:bg-slate-50 data-[selected=true]:text-slate-900"
+                          disabled={boards.length === 0}
+                        />
+                        {boards.length === 0 ? (
+                          <p className="text-xs text-slate-500">
+                            Create a board before adding agents.
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-900">
+                          Emoji
+                        </label>
+                        <Select
+                          value={identityProfile.emoji}
+                          onValueChange={(value) =>
+                            setIdentityProfile((current) => ({
+                              ...current,
+                              emoji: value,
+                            }))
+                          }
+                          disabled={isLoading}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select emoji" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {EMOJI_OPTIONS.map((option) => (
+                              <SelectItem
+                                key={option.value}
+                                value={option.value}
+                              >
+                                {option.glyph} {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Personality & behavior
+                  </p>
+                  <div className="mt-4 space-y-6">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-slate-900">
-                        Role
+                        Communication style
                       </label>
                       <Input
-                        value={identityProfile.role}
+                        value={identityProfile.communication_style}
                         onChange={(event) =>
                           setIdentityProfile((current) => ({
                             ...current,
-                            role: event.target.value,
+                            communication_style: event.target.value,
                           }))
                         }
-                        placeholder="e.g. Founder, Social Media Manager"
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-900">
+                        Soul template
+                      </label>
+                      <Textarea
+                        value={soulTemplate}
+                        onChange={(event) =>
+                          setSoulTemplate(event.target.value)
+                        }
+                        rows={10}
                         disabled={isLoading}
                       />
                     </div>
                   </div>
-                  <div className="grid gap-6 md:grid-cols-2">
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Schedule & notifications
+                  </p>
+                  <div className="mt-4 grid gap-6 md:grid-cols-2">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-slate-900">
-                        Board <span className="text-red-500">*</span>
+                        Interval
+                      </label>
+                      <Input
+                        value={heartbeatEvery}
+                        onChange={(event) =>
+                          setHeartbeatEvery(event.target.value)
+                        }
+                        placeholder="e.g. 10m"
+                        disabled={isLoading}
+                      />
+                      <p className="text-xs text-slate-500">
+                        How often this agent runs HEARTBEAT.md (10m, 30m, 2h).
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-900">
+                        Target
                       </label>
                       <SearchableSelect
-                        ariaLabel="Select board"
-                        value={displayBoardId}
-                        onValueChange={setBoardId}
-                        options={getBoardOptions(boards)}
-                        placeholder="Select board"
-                        searchPlaceholder="Search boards..."
-                        emptyMessage="No matching boards."
+                        ariaLabel="Select heartbeat target"
+                        value={heartbeatTarget}
+                        onValueChange={setHeartbeatTarget}
+                        options={HEARTBEAT_TARGET_OPTIONS}
+                        placeholder="Select target"
+                        searchPlaceholder="Search targets..."
+                        emptyMessage="No matching targets."
                         triggerClassName="w-full h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                         contentClassName="rounded-xl border border-slate-200 shadow-lg"
                         itemClassName="px-4 py-3 text-sm text-slate-700 data-[selected=true]:bg-slate-50 data-[selected=true]:text-slate-900"
-                        disabled={boards.length === 0}
-                      />
-                      {boards.length === 0 ? (
-                        <p className="text-xs text-slate-500">
-                          Create a board before adding agents.
-                        </p>
-                      ) : null}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-900">
-                        Emoji
-                      </label>
-                      <Select
-                        value={identityProfile.emoji}
-                        onValueChange={(value) =>
-                          setIdentityProfile((current) => ({
-                            ...current,
-                            emoji: value,
-                          }))
-                        }
                         disabled={isLoading}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select emoji" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {EMOJI_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.glyph} {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      />
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Personality & behavior
-                </p>
-                <div className="mt-4 space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-900">
-                      Communication style
-                    </label>
-                    <Input
-                      value={identityProfile.communication_style}
-                      onChange={(event) =>
-                        setIdentityProfile((current) => ({
-                          ...current,
-                          communication_style: event.target.value,
-                        }))
-                      }
-                      disabled={isLoading}
-                    />
+                {errorMessage ? (
+                  <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-600 shadow-sm">
+                    {errorMessage}
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-900">
-                      Soul template
-                    </label>
-                    <Textarea
-                      value={soulTemplate}
-                      onChange={(event) => setSoulTemplate(event.target.value)}
-                      rows={10}
-                      disabled={isLoading}
-                    />
-                  </div>
+                ) : null}
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? "Creating…" : "Create agent"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={() => router.push("/agents")}
+                  >
+                    Back to agents
+                  </Button>
                 </div>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Schedule & notifications
-                </p>
-                <div className="mt-4 grid gap-6 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-900">
-                      Interval
-                    </label>
-                    <Input
-                      value={heartbeatEvery}
-                      onChange={(event) =>
-                        setHeartbeatEvery(event.target.value)
-                      }
-                      placeholder="e.g. 10m"
-                      disabled={isLoading}
-                    />
-                    <p className="text-xs text-slate-500">
-                      How often this agent runs HEARTBEAT.md (10m, 30m, 2h).
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-900">
-                      Target
-                    </label>
-                    <SearchableSelect
-                      ariaLabel="Select heartbeat target"
-                      value={heartbeatTarget}
-                      onValueChange={setHeartbeatTarget}
-                      options={HEARTBEAT_TARGET_OPTIONS}
-                      placeholder="Select target"
-                      searchPlaceholder="Search targets..."
-                      emptyMessage="No matching targets."
-                      triggerClassName="w-full h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                      contentClassName="rounded-xl border border-slate-200 shadow-lg"
-                      itemClassName="px-4 py-3 text-sm text-slate-700 data-[selected=true]:bg-slate-50 data-[selected=true]:text-slate-900"
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {errorMessage ? (
-                <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-600 shadow-sm">
-                  {errorMessage}
-                </div>
-              ) : null}
-
-              <div className="flex flex-wrap items-center gap-3">
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Creating…" : "Create agent"}
-                </Button>
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => router.push("/agents")}
-                >
-                  Back to agents
-                </Button>
-              </div>
-            </form>
+              </form>
             )}
           </div>
         </main>

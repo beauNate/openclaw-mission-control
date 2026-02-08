@@ -162,6 +162,7 @@ Clerk should be **off** unless you set a real `pk_test_...` or `pk_live_...` pub
 If you see repeated proxy errors (often `ECONNRESET`), make sure your dev server hostname and browser URL match (e.g. `localhost` vs `127.0.0.1`), and that your origin is included in `allowedDevOrigins`.
 
 Notes:
+
 - Local dev should work via `http://localhost:3000` and `http://127.0.0.1:3000`.
 - LAN dev should work via the configured LAN IP (e.g. `http://192.168.1.101:3000`) **only** if you bind the dev server to all interfaces (`npm run dev:lan`).
 - If you bind Next to `127.0.0.1` only, remote LAN clients won’t connect.

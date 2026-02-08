@@ -129,7 +129,9 @@ async def _apply_board_update(
 ) -> Board:
     updates = payload.model_dump(exclude_unset=True)
     if "gateway_id" in updates:
-        await _require_gateway(session, updates["gateway_id"], organization_id=board.organization_id)
+        await _require_gateway(
+            session, updates["gateway_id"], organization_id=board.organization_id
+        )
     if "board_group_id" in updates and updates["board_group_id"] is not None:
         await _require_board_group(
             session,

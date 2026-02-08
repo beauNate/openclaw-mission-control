@@ -15,7 +15,10 @@ import {
 
 import { useAuth } from "@/auth/clerk";
 import { ApiError } from "@/api/mutator";
-import { type getMyMembershipApiV1OrganizationsMeMemberGetResponse, useGetMyMembershipApiV1OrganizationsMeMemberGet } from "@/api/generated/organizations/organizations";
+import {
+  type getMyMembershipApiV1OrganizationsMeMemberGetResponse,
+  useGetMyMembershipApiV1OrganizationsMeMemberGet,
+} from "@/api/generated/organizations/organizations";
 import {
   type healthzHealthzGetResponse,
   useHealthzHealthzGet,
@@ -65,7 +68,7 @@ export function DashboardSidebar() {
         ? "System status unavailable"
         : "System degraded";
 
-      return (
+  return (
     <aside className="flex h-full w-64 flex-col border-r border-slate-200 bg-white">
       <div className="flex-1 px-3 py-4">
         <p className="px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">

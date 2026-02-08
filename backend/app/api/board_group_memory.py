@@ -33,6 +33,7 @@ from app.models.gateways import Gateway
 from app.models.users import User
 from app.schemas.board_group_memory import BoardGroupMemoryCreate, BoardGroupMemoryRead
 from app.schemas.pagination import DefaultLimitOffsetPage
+from app.services.mentions import extract_mentions, matches_agent_mention
 from app.services.organizations import (
     OrganizationContext,
     is_org_admin,
@@ -40,7 +41,6 @@ from app.services.organizations import (
     member_all_boards_read,
     member_all_boards_write,
 )
-from app.services.mentions import extract_mentions, matches_agent_mention
 
 router = APIRouter(tags=["board-group-memory"])
 

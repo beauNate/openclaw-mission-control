@@ -76,7 +76,9 @@ type AccessScope = "all" | "custom";
 
 type BoardAccessState = Record<string, { read: boolean; write: boolean }>;
 
-const buildAccessList = (access: BoardAccessState): OrganizationBoardAccessSpec[] =>
+const buildAccessList = (
+  access: BoardAccessState,
+): OrganizationBoardAccessSpec[] =>
   Object.entries(access)
     .filter(([, entry]) => entry.read || entry.write)
     .map(([boardId, entry]) => ({
@@ -319,9 +321,8 @@ export default function OrganizationPage() {
   const [inviteScope, setInviteScope] = useState<AccessScope>("all");
   const [inviteAllRead, setInviteAllRead] = useState(true);
   const [inviteAllWrite, setInviteAllWrite] = useState(false);
-  const [inviteAccess, setInviteAccess] = useState<BoardAccessState>(
-    defaultBoardAccess,
-  );
+  const [inviteAccess, setInviteAccess] =
+    useState<BoardAccessState>(defaultBoardAccess);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [copiedInviteId, setCopiedInviteId] = useState<string | null>(null);
 
@@ -331,9 +332,8 @@ export default function OrganizationPage() {
   const [accessAllRead, setAccessAllRead] = useState(false);
   const [accessAllWrite, setAccessAllWrite] = useState(false);
   const [accessRole, setAccessRole] = useState("member");
-  const [accessMap, setAccessMap] = useState<BoardAccessState>(
-    defaultBoardAccess,
-  );
+  const [accessMap, setAccessMap] =
+    useState<BoardAccessState>(defaultBoardAccess);
   const [accessError, setAccessError] = useState<string | null>(null);
 
   const orgQuery = useGetMyOrgApiV1OrganizationsMeGet<
@@ -426,32 +426,33 @@ export default function OrganizationPage() {
       },
     });
 
-  const createInviteMutation = useCreateOrgInviteApiV1OrganizationsMeInvitesPost<
-    ApiError
-  >({
-    mutation: {
-      onSuccess: (result) => {
-        if (result.status === 200) {
-          setInviteEmail("");
-          setInviteRole("member");
-          setInviteScope("all");
-          setInviteAllRead(true);
-          setInviteAllWrite(false);
-          setInviteAccess(defaultBoardAccess);
-          setInviteError(null);
-          queryClient.invalidateQueries({
-            queryKey: getListOrgInvitesApiV1OrganizationsMeInvitesGetQueryKey({
-              limit: 200,
-            }),
-          });
-          setInviteDialogOpen(false);
-        }
+  const createInviteMutation =
+    useCreateOrgInviteApiV1OrganizationsMeInvitesPost<ApiError>({
+      mutation: {
+        onSuccess: (result) => {
+          if (result.status === 200) {
+            setInviteEmail("");
+            setInviteRole("member");
+            setInviteScope("all");
+            setInviteAllRead(true);
+            setInviteAllWrite(false);
+            setInviteAccess(defaultBoardAccess);
+            setInviteError(null);
+            queryClient.invalidateQueries({
+              queryKey: getListOrgInvitesApiV1OrganizationsMeInvitesGetQueryKey(
+                {
+                  limit: 200,
+                },
+              ),
+            });
+            setInviteDialogOpen(false);
+          }
+        },
+        onError: (err) => {
+          setInviteError(err.message || "Unable to create invite.");
+        },
       },
-      onError: (err) => {
-        setInviteError(err.message || "Unable to create invite.");
-      },
-    },
-  });
+    });
 
   const revokeInviteMutation =
     useRevokeOrgInviteApiV1OrganizationsMeInvitesInviteIdDelete<ApiError>({
@@ -472,9 +473,11 @@ export default function OrganizationPage() {
         mutation: {
           onSuccess: () => {
             queryClient.invalidateQueries({
-              queryKey: getListOrgMembersApiV1OrganizationsMeMembersGetQueryKey({
-                limit: 200,
-              }),
+              queryKey: getListOrgMembersApiV1OrganizationsMeMembersGetQueryKey(
+                {
+                  limit: 200,
+                },
+              ),
             });
             if (activeMemberId) {
               queryClient.invalidateQueries({
@@ -535,9 +538,7 @@ export default function OrganizationPage() {
   }, [inviteDialogOpen]);
 
   const orgName =
-    orgQuery.data?.status === 200
-      ? orgQuery.data.data.name
-      : "Organization";
+    orgQuery.data?.status === 200 ? orgQuery.data.data.name : "Organization";
 
   const handleInviteSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -710,7 +711,10 @@ export default function OrganizationPage() {
                     <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
                       Organization
                     </h1>
-                    <Badge variant="outline" className="flex items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className="flex items-center gap-2"
+                    >
                       <Building2 className="h-3.5 w-3.5" />
                       {orgName}
                     </Badge>

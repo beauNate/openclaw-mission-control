@@ -350,88 +350,88 @@ export default function AgentsPage() {
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
-                  <thead className="sticky top-0 z-10 bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <tr key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
-                          <th key={header.id} className="px-6 py-3">
-                            {header.isPlaceholder
-                              ? null
-                              : flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext(),
-                                )}
-                          </th>
+                      <thead className="sticky top-0 z-10 bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        {table.getHeaderGroups().map((headerGroup) => (
+                          <tr key={headerGroup.id}>
+                            {headerGroup.headers.map((header) => (
+                              <th key={header.id} className="px-6 py-3">
+                                {header.isPlaceholder
+                                  ? null
+                                  : flexRender(
+                                      header.column.columnDef.header,
+                                      header.getContext(),
+                                    )}
+                              </th>
+                            ))}
+                          </tr>
                         ))}
-                      </tr>
-                    ))}
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {agentsQuery.isLoading ? (
-                      <tr>
-                        <td colSpan={columns.length} className="px-6 py-8">
-                          <span className="text-sm text-slate-500">
-                            Loading…
-                          </span>
-                        </td>
-                      </tr>
-                    ) : table.getRowModel().rows.length ? (
-                      table.getRowModel().rows.map((row) => (
-                        <tr key={row.id} className="hover:bg-slate-50">
-                          {row.getVisibleCells().map((cell) => (
-                            <td key={cell.id} className="px-6 py-4">
-                              {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext(),
-                              )}
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {agentsQuery.isLoading ? (
+                          <tr>
+                            <td colSpan={columns.length} className="px-6 py-8">
+                              <span className="text-sm text-slate-500">
+                                Loading…
+                              </span>
                             </td>
-                          ))}
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={columns.length} className="px-6 py-16">
-                          <div className="flex flex-col items-center justify-center text-center">
-                            <div className="mb-4 rounded-full bg-slate-50 p-4">
-                              <svg
-                                className="h-16 w-16 text-slate-300"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                                <circle cx="9" cy="7" r="4" />
-                                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                              </svg>
-                            </div>
-                            <h3 className="mb-2 text-lg font-semibold text-slate-900">
-                              No agents yet
-                            </h3>
-                            <p className="mb-6 max-w-md text-sm text-slate-500">
-                              Create your first agent to start executing tasks
-                              on this board.
-                            </p>
-                            <Link
-                              href="/agents/new"
-                              className={buttonVariants({
-                                size: "md",
-                                variant: "primary",
-                              })}
-                            >
-                              Create your first agent
-                            </Link>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                          </tr>
+                        ) : table.getRowModel().rows.length ? (
+                          table.getRowModel().rows.map((row) => (
+                            <tr key={row.id} className="hover:bg-slate-50">
+                              {row.getVisibleCells().map((cell) => (
+                                <td key={cell.id} className="px-6 py-4">
+                                  {flexRender(
+                                    cell.column.columnDef.cell,
+                                    cell.getContext(),
+                                  )}
+                                </td>
+                              ))}
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={columns.length} className="px-6 py-16">
+                              <div className="flex flex-col items-center justify-center text-center">
+                                <div className="mb-4 rounded-full bg-slate-50 p-4">
+                                  <svg
+                                    className="h-16 w-16 text-slate-300"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                    <circle cx="9" cy="7" r="4" />
+                                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                  </svg>
+                                </div>
+                                <h3 className="mb-2 text-lg font-semibold text-slate-900">
+                                  No agents yet
+                                </h3>
+                                <p className="mb-6 max-w-md text-sm text-slate-500">
+                                  Create your first agent to start executing
+                                  tasks on this board.
+                                </p>
+                                <Link
+                                  href="/agents/new"
+                                  className={buttonVariants({
+                                    size: "md",
+                                    variant: "primary",
+                                  })}
+                                >
+                                  Create your first agent
+                                </Link>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
 
                 {agentsQuery.error ? (
                   <p className="mt-4 text-sm text-red-500">

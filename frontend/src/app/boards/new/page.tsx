@@ -282,7 +282,7 @@ export default function NewBoardPage() {
                     {isLoading ? "Creating…" : "Create board"}
                   </Button>
                 </div>
-            </form>
+              </form>
             )}
           </div>
         </main>

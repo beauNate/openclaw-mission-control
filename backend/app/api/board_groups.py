@@ -83,9 +83,7 @@ async def list_board_groups(
     ctx=Depends(require_org_member),
 ) -> DefaultLimitOffsetPage[BoardGroupRead]:
     if member_all_boards_read(ctx.member):
-        statement = select(BoardGroup).where(
-            col(BoardGroup.organization_id) == ctx.organization.id
-        )
+        statement = select(BoardGroup).where(col(BoardGroup.organization_id) == ctx.organization.id)
     else:
         accessible_boards = select(Board.board_group_id).where(
             board_access_filter(ctx.member, write=False)

@@ -23,6 +23,7 @@ from app.models.organizations import Organization
 from app.models.users import User
 from app.schemas.organizations import (
     OrganizationActiveUpdate,
+    OrganizationBoardAccessRead,
     OrganizationCreate,
     OrganizationInviteAccept,
     OrganizationInviteCreate,
@@ -31,7 +32,6 @@ from app.schemas.organizations import (
     OrganizationMemberAccessUpdate,
     OrganizationMemberRead,
     OrganizationMemberUpdate,
-    OrganizationBoardAccessRead,
     OrganizationRead,
     OrganizationUserRead,
 )
@@ -39,8 +39,8 @@ from app.schemas.pagination import DefaultLimitOffsetPage
 from app.services.organizations import (
     OrganizationContext,
     accept_invite,
-    apply_invite_to_member,
     apply_invite_board_access,
+    apply_invite_to_member,
     apply_member_access_update,
     get_active_membership,
     get_member,
@@ -298,9 +298,7 @@ async def create_org_invite(
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
     existing_user = (
-        await session.exec(
-            select(User).where(func.lower(col(User.email)) == email)
-        )
+        await session.exec(select(User).where(func.lower(col(User.email)) == email))
     ).first()
     if existing_user is not None:
         existing_member = await get_member(
@@ -380,7 +378,9 @@ async def accept_org_invite(
     if invite is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     if invite.invited_email and auth.user.email:
-        if normalize_invited_email(invite.invited_email) != normalize_invited_email(auth.user.email):
+        if normalize_invited_email(invite.invited_email) != normalize_invited_email(
+            auth.user.email
+        ):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
     existing = await get_member(

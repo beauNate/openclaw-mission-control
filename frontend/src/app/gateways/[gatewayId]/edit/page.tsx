@@ -269,121 +269,123 @@ export default function EditGatewayPage() {
                   />
                 </div>
 
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-900">
-                    Gateway URL <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-900">
+                      Gateway URL <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Input
+                        value={resolvedGatewayUrl}
+                        onChange={(event) => {
+                          setGatewayUrl(event.target.value);
+                          setGatewayUrlError(null);
+                          setGatewayCheckStatus("idle");
+                          setGatewayCheckMessage(null);
+                        }}
+                        onBlur={runGatewayCheck}
+                        placeholder="ws://gateway:18789"
+                        disabled={isLoading}
+                        className={
+                          gatewayUrlError ? "border-red-500" : undefined
+                        }
+                      />
+                      <button
+                        type="button"
+                        onClick={runGatewayCheck}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        aria-label="Check gateway connection"
+                      >
+                        {gatewayCheckStatus === "checking" ? (
+                          <RefreshCcw className="h-4 w-4 animate-spin" />
+                        ) : gatewayCheckStatus === "success" ? (
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                        ) : gatewayCheckStatus === "error" ? (
+                          <XCircle className="h-4 w-4 text-red-500" />
+                        ) : (
+                          <RefreshCcw className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                    {gatewayUrlError ? (
+                      <p className="text-xs text-red-500">{gatewayUrlError}</p>
+                    ) : gatewayCheckMessage ? (
+                      <p
+                        className={
+                          gatewayCheckStatus === "success"
+                            ? "text-xs text-emerald-600"
+                            : "text-xs text-red-500"
+                        }
+                      >
+                        {gatewayCheckMessage}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-900">
+                      Gateway token
+                    </label>
                     <Input
-                      value={resolvedGatewayUrl}
+                      value={resolvedGatewayToken}
                       onChange={(event) => {
-                        setGatewayUrl(event.target.value);
-                        setGatewayUrlError(null);
+                        setGatewayToken(event.target.value);
                         setGatewayCheckStatus("idle");
                         setGatewayCheckMessage(null);
                       }}
                       onBlur={runGatewayCheck}
-                      placeholder="ws://gateway:18789"
+                      placeholder="Bearer token"
                       disabled={isLoading}
-                      className={gatewayUrlError ? "border-red-500" : undefined}
                     />
-                    <button
-                      type="button"
-                      onClick={runGatewayCheck}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                      aria-label="Check gateway connection"
-                    >
-                      {gatewayCheckStatus === "checking" ? (
-                        <RefreshCcw className="h-4 w-4 animate-spin" />
-                      ) : gatewayCheckStatus === "success" ? (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                      ) : gatewayCheckStatus === "error" ? (
-                        <XCircle className="h-4 w-4 text-red-500" />
-                      ) : (
-                        <RefreshCcw className="h-4 w-4" />
-                      )}
-                    </button>
                   </div>
-                  {gatewayUrlError ? (
-                    <p className="text-xs text-red-500">{gatewayUrlError}</p>
-                  ) : gatewayCheckMessage ? (
-                    <p
-                      className={
-                        gatewayCheckStatus === "success"
-                          ? "text-xs text-emerald-600"
-                          : "text-xs text-red-500"
-                      }
-                    >
-                      {gatewayCheckMessage}
-                    </p>
-                  ) : null}
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-900">
-                    Gateway token
-                  </label>
-                  <Input
-                    value={resolvedGatewayToken}
-                    onChange={(event) => {
-                      setGatewayToken(event.target.value);
-                      setGatewayCheckStatus("idle");
-                      setGatewayCheckMessage(null);
-                    }}
-                    onBlur={runGatewayCheck}
-                    placeholder="Bearer token"
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
 
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-900">
-                    Main session key <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    value={resolvedMainSessionKey}
-                    onChange={(event) => {
-                      setMainSessionKey(event.target.value);
-                      setGatewayCheckStatus("idle");
-                      setGatewayCheckMessage(null);
-                    }}
-                    placeholder={DEFAULT_MAIN_SESSION_KEY}
-                    disabled={isLoading}
-                  />
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-900">
+                      Main session key <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={resolvedMainSessionKey}
+                      onChange={(event) => {
+                        setMainSessionKey(event.target.value);
+                        setGatewayCheckStatus("idle");
+                        setGatewayCheckMessage(null);
+                      }}
+                      placeholder={DEFAULT_MAIN_SESSION_KEY}
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-900">
+                      Workspace root <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={resolvedWorkspaceRoot}
+                      onChange={(event) => setWorkspaceRoot(event.target.value)}
+                      placeholder={DEFAULT_WORKSPACE_ROOT}
+                      disabled={isLoading}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-900">
-                    Workspace root <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    value={resolvedWorkspaceRoot}
-                    onChange={(event) => setWorkspaceRoot(event.target.value)}
-                    placeholder={DEFAULT_WORKSPACE_ROOT}
+
+                {errorMessage ? (
+                  <p className="text-sm text-red-500">{errorMessage}</p>
+                ) : null}
+
+                <div className="flex justify-end gap-3">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => router.push("/gateways")}
                     disabled={isLoading}
-                  />
+                  >
+                    Back
+                  </Button>
+                  <Button type="submit" disabled={isLoading || !canSubmit}>
+                    {isLoading ? "Saving…" : "Save changes"}
+                  </Button>
                 </div>
-              </div>
-
-              {errorMessage ? (
-                <p className="text-sm text-red-500">{errorMessage}</p>
-              ) : null}
-
-              <div className="flex justify-end gap-3">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => router.push("/gateways")}
-                  disabled={isLoading}
-                >
-                  Back
-                </Button>
-                <Button type="submit" disabled={isLoading || !canSubmit}>
-                  {isLoading ? "Saving…" : "Save changes"}
-                </Button>
-              </div>
-            </form>
+              </form>
             )}
           </div>
         </main>

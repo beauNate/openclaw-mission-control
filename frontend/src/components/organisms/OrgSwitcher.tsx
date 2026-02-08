@@ -91,8 +91,8 @@ export function OrgSwitcher() {
       },
     });
 
-  const createOrgMutation = useCreateOrganizationApiV1OrganizationsPost<ApiError>(
-    {
+  const createOrgMutation =
+    useCreateOrganizationApiV1OrganizationsPost<ApiError>({
       mutation: {
         onSuccess: () => {
           setOrgName("");
@@ -110,8 +110,7 @@ export function OrgSwitcher() {
           setOrgError(err.message || "Unable to create organization.");
         },
       },
-    },
-  );
+    });
 
   const handleOrgChange = (value: string) => {
     if (value === "__create__") {

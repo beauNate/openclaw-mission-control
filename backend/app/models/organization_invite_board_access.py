@@ -20,9 +20,7 @@ class OrganizationInviteBoardAccess(SQLModel, table=True):
     )
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    organization_invite_id: UUID = Field(
-        foreign_key="organization_invites.id", index=True
-    )
+    organization_invite_id: UUID = Field(foreign_key="organization_invites.id", index=True)
     board_id: UUID = Field(foreign_key="boards.id", index=True)
     can_read: bool = Field(default=True)
     can_write: bool = Field(default=False)

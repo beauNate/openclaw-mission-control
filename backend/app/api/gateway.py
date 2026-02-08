@@ -21,7 +21,6 @@ from app.integrations.openclaw_gateway_protocol import (
 )
 from app.models.boards import Board
 from app.models.gateways import Gateway
-from app.services.organizations import OrganizationContext, require_board_access
 from app.schemas.common import OkResponse
 from app.schemas.gateway_api import (
     GatewayCommandsResponse,
@@ -32,6 +31,7 @@ from app.schemas.gateway_api import (
     GatewaySessionsResponse,
     GatewaysStatusResponse,
 )
+from app.services.organizations import OrganizationContext, require_board_access
 
 router = APIRouter(prefix="/gateways", tags=["gateways"])
 

@@ -11,9 +11,10 @@ from app.core.auth import AuthContext, get_auth_context, get_auth_context_option
 from app.db.session import get_session
 from app.models.agents import Agent
 from app.models.boards import Board
+from app.models.organizations import Organization
 from app.models.tasks import Task
 from app.models.users import User
-from app.models.organizations import Organization
+from app.services.admin_access import require_admin
 from app.services.organizations import (
     OrganizationContext,
     ensure_member_for_user,
@@ -21,7 +22,6 @@ from app.services.organizations import (
     is_org_admin,
     require_board_access,
 )
-from app.services.admin_access import require_admin
 
 
 def require_admin_auth(auth: AuthContext = Depends(get_auth_context)) -> AuthContext:

@@ -229,9 +229,7 @@ async def _fetch_agent_events(
     return list(await session.exec(statement))
 
 
-async def _require_user_context(
-    session: AsyncSession, user: User | None
-) -> OrganizationContext:
+async def _require_user_context(session: AsyncSession, user: User | None) -> OrganizationContext:
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     member = await get_active_membership(session, user)

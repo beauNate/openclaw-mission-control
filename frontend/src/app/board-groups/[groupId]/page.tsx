@@ -710,7 +710,13 @@ export default function BoardGroupDetailPage() {
     } finally {
       setIsHeartbeatApplying(false);
     }
-  }, [canManageHeartbeat, groupId, heartbeatEvery, includeBoardLeads, isSignedIn]);
+  }, [
+    canManageHeartbeat,
+    groupId,
+    heartbeatEvery,
+    includeBoardLeads,
+    isSignedIn,
+  ]);
 
   return (
     <DashboardShell>
@@ -850,7 +856,8 @@ export default function BoardGroupDetailPage() {
                             heartbeatEvery === value
                               ? "bg-slate-900 text-white"
                               : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-                            !canManageHeartbeat && "opacity-50 cursor-not-allowed",
+                            !canManageHeartbeat &&
+                              "opacity-50 cursor-not-allowed",
                           )}
                           disabled={!canManageHeartbeat}
                           onClick={() => {
@@ -913,7 +920,9 @@ export default function BoardGroupDetailPage() {
                     variant="outline"
                     onClick={() => void applyHeartbeat()}
                     disabled={
-                      isHeartbeatApplying || !heartbeatEvery || !canManageHeartbeat
+                      isHeartbeatApplying ||
+                      !heartbeatEvery ||
+                      !canManageHeartbeat
                     }
                     title={
                       canManageHeartbeat

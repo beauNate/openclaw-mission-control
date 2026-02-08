@@ -114,8 +114,15 @@ export default function InvitePage() {
             </SignedOut>
 
             <SignedIn>
-              <form className="flex flex-wrap items-center gap-3" onSubmit={handleAccept}>
-                <Button type="submit" size="md" disabled={!isReady || isSubmitting || accepted}>
+              <form
+                className="flex flex-wrap items-center gap-3"
+                onSubmit={handleAccept}
+              >
+                <Button
+                  type="submit"
+                  size="md"
+                  disabled={!isReady || isSubmitting || accepted}
+                >
                   {accepted
                     ? "Invite accepted"
                     : isSubmitting

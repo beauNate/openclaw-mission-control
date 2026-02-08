@@ -79,9 +79,7 @@ async def set_active_organization(
     user: User,
     organization_id: UUID,
 ) -> OrganizationMember:
-    member = await get_member(
-        session, user_id=user.id, organization_id=organization_id
-    )
+    member = await get_member(session, user_id=user.id, organization_id=organization_id)
     if member is None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No org access")
     if user.active_organization_id != organization_id:
@@ -199,8 +197,7 @@ async def ensure_member_for_user(session: AsyncSession, user: User) -> Organizat
     now = utcnow()
     member_count = (
         await session.exec(
-            select(func.count())
-            .where(col(OrganizationMember.organization_id) == org.id)
+            select(func.count()).where(col(OrganizationMember.organization_id) == org.id)
         )
     ).one()
     is_first = int(member_count or 0) == 0
