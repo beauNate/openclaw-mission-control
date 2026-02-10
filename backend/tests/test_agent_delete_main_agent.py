@@ -45,7 +45,9 @@ class _GatewayStub:
 
 
 @pytest.mark.asyncio
-async def test_delete_gateway_main_agent_does_not_require_board_id(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_delete_gateway_main_agent_does_not_require_board_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     session = _FakeSession()
     service = agent_service.AgentLifecycleService(session)  # type: ignore[arg-type]
 
@@ -63,7 +65,9 @@ async def test_delete_gateway_main_agent_does_not_require_board_id(monkeypatch: 
         token=None,
         workspace_root="/tmp/openclaw",
     )
-    ctx = SimpleNamespace(organization=SimpleNamespace(id=uuid4()), member=SimpleNamespace(id=uuid4()))
+    ctx = SimpleNamespace(
+        organization=SimpleNamespace(id=uuid4()), member=SimpleNamespace(id=uuid4())
+    )
 
     async def _fake_first_agent(_session: object) -> _AgentStub:
         return agent
@@ -109,7 +113,7 @@ async def test_delete_gateway_main_agent_does_not_require_board_id(monkeypatch: 
     monkeypatch.setattr(service, "require_board", _should_not_be_called)
     monkeypatch.setattr(service, "require_gateway", _should_not_be_called)
     monkeypatch.setattr(
-        agent_service.OpenClawProvisioningService,
+        agent_service.OpenClawGatewayProvisioner,
         "delete_agent_lifecycle",
         _fake_delete_agent_lifecycle,
     )

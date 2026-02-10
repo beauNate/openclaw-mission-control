@@ -35,7 +35,7 @@ from app.schemas.board_onboarding import (
 from app.schemas.boards import BoardRead
 from app.services.openclaw.onboarding_service import BoardOnboardingMessagingService
 from app.services.openclaw.policies import OpenClawAuthorizationPolicy
-from app.services.openclaw.provisioning import (
+from app.services.openclaw.provisioning_db import (
     LeadAgentOptions,
     LeadAgentRequest,
     OpenClawProvisioningService,

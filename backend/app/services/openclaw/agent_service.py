@@ -6,7 +6,6 @@ import asyncio
 import json
 import logging
 import re
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Literal, Protocol
@@ -49,11 +48,12 @@ from app.services.openclaw.constants import (
     OFFLINE_AFTER,
 )
 from app.services.openclaw.policies import OpenClawAuthorizationPolicy
-from app.services.openclaw.provisioning import OpenClawProvisioningService
+from app.services.openclaw.provisioning import OpenClawGatewayProvisioner
 from app.services.openclaw.shared import GatewayAgentIdentity
 from app.services.organizations import (
     OrganizationContext,
     get_active_membership,
+    get_org_owner_user,
     has_board_access,
     is_org_admin,
     list_accessible_board_ids,
@@ -95,7 +95,6 @@ class AgentUpdateProvisionTarget:
     is_main_agent: bool
     board: Board | None
     gateway: Gateway
-    client_config: GatewayClientConfig
 
 
 @dataclass(frozen=True, slots=True)
@@ -106,175 +105,6 @@ class AgentUpdateProvisionRequest:
     raw_token: str
     user: User | None
     force_bootstrap: bool
-
-
-class AbstractProvisionExecution(ABC):
-    """Shared async execution contract for board/main agent provisioning actions."""
-
-    def __init__(
-        self,
-        *,
-        service: AgentLifecycleService,
-        agent: Agent,
-        provision_request: AgentUpdateProvisionRequest,
-        action: str,
-        wakeup_verb: str,
-        raise_gateway_errors: bool,
-    ) -> None:
-        self._service = service
-        self._agent = agent
-        self._request = provision_request
-        self._action = action
-        self._wakeup_verb = wakeup_verb
-        self._raise_gateway_errors = raise_gateway_errors
-
-    @property
-    def agent(self) -> Agent:
-        return self._agent
-
-    @agent.setter
-    def agent(self, value: Agent) -> None:
-        if not isinstance(value, Agent):
-            msg = "agent must be an Agent model"
-            raise TypeError(msg)
-        self._agent = value
-
-    @property
-    def request(self) -> AgentUpdateProvisionRequest:
-        return self._request
-
-    @request.setter
-    def request(self, value: AgentUpdateProvisionRequest) -> None:
-        if not isinstance(value, AgentUpdateProvisionRequest):
-            msg = "request must be an AgentUpdateProvisionRequest"
-            raise TypeError(msg)
-        self._request = value
-
-    @property
-    def logger(self) -> logging.Logger:
-        return self._service.logger
-
-    @abstractmethod
-    async def _provision(self) -> None:
-        raise NotImplementedError
-
-    async def execute(self) -> None:
-        self.logger.log(
-            5,
-            "agent.provision.start action=%s agent_id=%s target_main=%s",
-            self._action,
-            self.agent.id,
-            self.request.target.is_main_agent,
-        )
-        try:
-            await self._provision()
-            self.agent.provision_confirm_token_hash = None
-            self.agent.provision_requested_at = None
-            self.agent.provision_action = None
-            self.agent.status = "online"
-            self.agent.updated_at = utcnow()
-            self._service.session.add(self.agent)
-            await self._service.session.commit()
-            record_activity(
-                self._service.session,
-                event_type=f"agent.{self._action}.direct",
-                message=f"{self._action.capitalize()}d directly for {self.agent.name}.",
-                agent_id=self.agent.id,
-            )
-            record_activity(
-                self._service.session,
-                event_type="agent.wakeup.sent",
-                message=f"Wakeup message sent to {self.agent.name}.",
-                agent_id=self.agent.id,
-            )
-            await self._service.session.commit()
-            self.logger.info(
-                "agent.provision.success action=%s agent_id=%s",
-                self._action,
-                self.agent.id,
-            )
-        except OpenClawGatewayError as exc:
-            self._service.record_instruction_failure(
-                self._service.session,
-                self.agent,
-                str(exc),
-                self._action,
-            )
-            await self._service.session.commit()
-            self.logger.error(
-                "agent.provision.gateway_error action=%s agent_id=%s error=%s",
-                self._action,
-                self.agent.id,
-                str(exc),
-            )
-            if self._raise_gateway_errors:
-                raise HTTPException(
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail=f"Gateway {self._action} failed: {exc}",
-                ) from exc
-        except (OSError, RuntimeError, ValueError) as exc:  # pragma: no cover
-            self._service.record_instruction_failure(
-                self._service.session,
-                self.agent,
-                str(exc),
-                self._action,
-            )
-            await self._service.session.commit()
-            self.logger.critical(
-                "agent.provision.runtime_error action=%s agent_id=%s error=%s",
-                self._action,
-                self.agent.id,
-                str(exc),
-            )
-            if self._raise_gateway_errors:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Unexpected error {self._action}ing agent provisioning.",
-                ) from exc
-
-
-class BoardAgentProvisionExecution(AbstractProvisionExecution):
-    """Provision execution for board-scoped agents."""
-
-    async def _provision(self) -> None:
-        board = self.request.target.board
-        if board is None:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="board is required for non-main agent provisioning",
-            )
-        await OpenClawProvisioningService().apply_agent_lifecycle(
-            agent=self.agent,
-            gateway=self.request.target.gateway,
-            board=board,
-            auth_token=self.request.raw_token,
-            user=self.request.user,
-            action=self._action,
-            force_bootstrap=self.request.force_bootstrap,
-            reset_session=True,
-            wake=True,
-            deliver_wakeup=True,
-            wakeup_verb=self._wakeup_verb,
-        )
-
-
-class MainAgentProvisionExecution(AbstractProvisionExecution):
-    """Provision execution for gateway-main agents."""
-
-    async def _provision(self) -> None:
-        await OpenClawProvisioningService().apply_agent_lifecycle(
-            agent=self.agent,
-            gateway=self.request.target.gateway,
-            board=None,
-            auth_token=self.request.raw_token,
-            user=self.request.user,
-            action=self._action,
-            force_bootstrap=self.request.force_bootstrap,
-            reset_session=True,
-            wake=True,
-            deliver_wakeup=True,
-            wakeup_verb=self._wakeup_verb,
-        )
 
 
 class AgentLifecycleService:
@@ -611,6 +441,122 @@ class AgentLifecycleService:
         await self.session.refresh(agent)
         return agent, raw_token
 
+    async def _apply_gateway_provisioning(
+        self,
+        *,
+        agent: Agent,
+        target: AgentUpdateProvisionTarget,
+        auth_token: str,
+        user: User | None,
+        action: str,
+        wakeup_verb: str,
+        force_bootstrap: bool,
+        raise_gateway_errors: bool,
+    ) -> None:
+        self.logger.log(
+            5,
+            "agent.provision.start action=%s agent_id=%s target_main=%s",
+            action,
+            agent.id,
+            target.is_main_agent,
+        )
+        try:
+            if not target.is_main_agent and target.board is None:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="board is required for non-main agent provisioning",
+                )
+            template_user = user
+            if target.is_main_agent and template_user is None:
+                template_user = await get_org_owner_user(
+                    self.session,
+                    organization_id=target.gateway.organization_id,
+                )
+                if template_user is None:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail=(
+                            "User context is required to provision the gateway main agent "
+                            "(org owner not found)."
+                        ),
+                    )
+            await OpenClawGatewayProvisioner().apply_agent_lifecycle(
+                agent=agent,
+                gateway=target.gateway,
+                board=target.board if not target.is_main_agent else None,
+                auth_token=auth_token,
+                user=template_user,
+                action=action,
+                force_bootstrap=force_bootstrap,
+                reset_session=True,
+                wake=True,
+                deliver_wakeup=True,
+                wakeup_verb=wakeup_verb,
+            )
+            agent.provision_confirm_token_hash = None
+            agent.provision_requested_at = None
+            agent.provision_action = None
+            agent.status = "online"
+            agent.updated_at = utcnow()
+            self.session.add(agent)
+            await self.session.commit()
+            record_activity(
+                self.session,
+                event_type=f"agent.{action}.direct",
+                message=f"{action.capitalize()}d directly for {agent.name}.",
+                agent_id=agent.id,
+            )
+            record_activity(
+                self.session,
+                event_type="agent.wakeup.sent",
+                message=f"Wakeup message sent to {agent.name}.",
+                agent_id=agent.id,
+            )
+            await self.session.commit()
+            self.logger.info(
+                "agent.provision.success action=%s agent_id=%s",
+                action,
+                agent.id,
+            )
+        except OpenClawGatewayError as exc:
+            self.record_instruction_failure(
+                self.session,
+                agent,
+                str(exc),
+                action,
+            )
+            await self.session.commit()
+            self.logger.error(
+                "agent.provision.gateway_error action=%s agent_id=%s error=%s",
+                action,
+                agent.id,
+                str(exc),
+            )
+            if raise_gateway_errors:
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=f"Gateway {action} failed: {exc}",
+                ) from exc
+        except (OSError, RuntimeError, ValueError) as exc:  # pragma: no cover
+            self.record_instruction_failure(
+                self.session,
+                agent,
+                str(exc),
+                action,
+            )
+            await self.session.commit()
+            self.logger.critical(
+                "agent.provision.runtime_error action=%s agent_id=%s error=%s",
+                action,
+                agent.id,
+                str(exc),
+            )
+            if raise_gateway_errors:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Unexpected error {action}ing agent provisioning.",
+                ) from exc
+
     async def provision_new_agent(
         self,
         *,
@@ -620,27 +566,17 @@ class AgentLifecycleService:
         auth_token: str,
         user: User | None,
         force_bootstrap: bool,
-        client_config: GatewayClientConfig,
     ) -> None:
-        execution = BoardAgentProvisionExecution(
-            service=self,
+        await self._apply_gateway_provisioning(
             agent=agent,
-            provision_request=AgentUpdateProvisionRequest(
-                target=AgentUpdateProvisionTarget(
-                    is_main_agent=False,
-                    board=board,
-                    gateway=gateway,
-                    client_config=client_config,
-                ),
-                raw_token=auth_token,
-                user=user,
-                force_bootstrap=force_bootstrap,
-            ),
+            target=AgentUpdateProvisionTarget(is_main_agent=False, board=board, gateway=gateway),
+            auth_token=auth_token,
+            user=user,
             action="provision",
             wakeup_verb="provisioned",
-            raise_gateway_errors=False,
+            force_bootstrap=force_bootstrap,
+            raise_gateway_errors=True,
         )
-        await execution.execute()
 
     async def validate_agent_update_inputs(
         self,
@@ -756,7 +692,6 @@ class AgentLifecycleService:
                 is_main_agent=True,
                 board=None,
                 gateway=gateway_for_main,
-                client_config=self.gateway_client_config(gateway_for_main),
             )
 
         if make_main is None and agent.board_id is None and main_gateway is not None:
@@ -764,7 +699,6 @@ class AgentLifecycleService:
                 is_main_agent=True,
                 board=None,
                 gateway=main_gateway,
-                client_config=self.gateway_client_config(main_gateway),
             )
 
         if agent.board_id is None:
@@ -773,12 +707,11 @@ class AgentLifecycleService:
                 detail="board_id is required for non-main agents",
             )
         board = await self.require_board(agent.board_id)
-        gateway, client_config = await self.require_gateway(board)
+        gateway, _client_config = await self.require_gateway(board)
         return AgentUpdateProvisionTarget(
             is_main_agent=False,
             board=board,
             gateway=gateway,
-            client_config=client_config,
         )
 
     @staticmethod
@@ -796,26 +729,16 @@ class AgentLifecycleService:
         agent: Agent,
         request: AgentUpdateProvisionRequest,
     ) -> None:
-        execution: AbstractProvisionExecution
-        if request.target.is_main_agent:
-            execution = MainAgentProvisionExecution(
-                service=self,
-                agent=agent,
-                provision_request=request,
-                action="update",
-                wakeup_verb="updated",
-                raise_gateway_errors=True,
-            )
-        else:
-            execution = BoardAgentProvisionExecution(
-                service=self,
-                agent=agent,
-                provision_request=request,
-                action="update",
-                wakeup_verb="updated",
-                raise_gateway_errors=True,
-            )
-        await execution.execute()
+        await self._apply_gateway_provisioning(
+            agent=agent,
+            target=request.target,
+            auth_token=request.raw_token,
+            user=request.user,
+            action="update",
+            wakeup_verb="updated",
+            force_bootstrap=request.force_bootstrap,
+            raise_gateway_errors=True,
+        )
 
     @staticmethod
     def heartbeat_lookup_statement(payload: AgentHeartbeatCreate) -> SelectOfScalar[Agent]:
@@ -841,7 +764,7 @@ class AgentLifecycleService:
             user=actor.user,
             write=True,
         )
-        gateway, client_config = await self.require_gateway(board)
+        gateway, _client_config = await self.require_gateway(board)
         data: dict[str, Any] = {
             "name": payload.name,
             "board_id": board.id,
@@ -856,7 +779,6 @@ class AgentLifecycleService:
             auth_token=raw_token,
             user=actor.user,
             force_bootstrap=False,
-            client_config=client_config,
         )
         return agent
 
@@ -886,7 +808,7 @@ class AgentLifecycleService:
             user=user,
             write=True,
         )
-        gateway, client_config = await self.require_gateway(board)
+        gateway, _client_config = await self.require_gateway(board)
         await self.provision_new_agent(
             agent=agent,
             board=board,
@@ -894,7 +816,6 @@ class AgentLifecycleService:
             auth_token=raw_token,
             user=user,
             force_bootstrap=False,
-            client_config=client_config,
         )
 
     async def ensure_heartbeat_session_key(
@@ -1046,7 +967,7 @@ class AgentLifecycleService:
             user=actor.user if actor.actor_type == "user" else None,
             write=actor.actor_type == "user",
         )
-        gateway, client_config = await self.require_gateway(board)
+        gateway, _client_config = await self.require_gateway(board)
         data = payload.model_dump()
         data["gateway_id"] = gateway.id
         requested_name = (data.get("name") or "").strip()
@@ -1063,7 +984,6 @@ class AgentLifecycleService:
             auth_token=raw_token,
             user=actor.user if actor.actor_type == "user" else None,
             force_bootstrap=False,
-            client_config=client_config,
         )
         self.logger.info("agent.create.success agent_id=%s board_id=%s", agent.id, board.id)
         return self.to_agent_read(self.with_computed_status(agent))
@@ -1224,7 +1144,7 @@ class AgentLifecycleService:
             if gateway and gateway.url:
                 client_config = GatewayClientConfig(url=gateway.url, token=gateway.token)
                 try:
-                    workspace_path = await OpenClawProvisioningService().delete_agent_lifecycle(
+                    workspace_path = await OpenClawGatewayProvisioner().delete_agent_lifecycle(
                         agent=agent,
                         gateway=gateway,
                     )
@@ -1246,7 +1166,7 @@ class AgentLifecycleService:
             board = await self.require_board(str(agent.board_id))
             gateway, client_config = await self.require_gateway(board)
             try:
-                workspace_path = await OpenClawProvisioningService().delete_agent_lifecycle(
+                workspace_path = await OpenClawGatewayProvisioner().delete_agent_lifecycle(
                     agent=agent,
                     gateway=gateway,
                 )

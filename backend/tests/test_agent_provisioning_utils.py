@@ -129,7 +129,7 @@ async def test_provision_main_agent_uses_dedicated_openclaw_agent_id(monkeypatch
         _fake_set_agent_files,
     )
 
-    await agent_provisioning.OpenClawProvisioningService().apply_agent_lifecycle(
+    await agent_provisioning.OpenClawGatewayProvisioner().apply_agent_lifecycle(
         agent=agent,  # type: ignore[arg-type]
         gateway=gateway,  # type: ignore[arg-type]
         board=None,

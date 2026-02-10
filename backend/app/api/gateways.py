@@ -70,9 +70,6 @@ async def list_gateways(
     ctx: OrganizationContext = ORG_ADMIN_DEP,
 ) -> LimitOffsetPage[GatewayRead]:
     """List gateways for the caller's organization."""
-    service = GatewayAdminLifecycleService(session)
-    gateways = await Gateway.objects.filter_by(organization_id=ctx.organization.id).all(session)
-    await service.ensure_gateway_agents_exist(gateways)
     statement = (
         Gateway.objects.filter_by(organization_id=ctx.organization.id)
         .order_by(col(Gateway.created_at).desc())
@@ -111,7 +108,6 @@ async def get_gateway(
         gateway_id=gateway_id,
         organization_id=ctx.organization.id,
     )
-    await service.ensure_gateway_agents_exist([gateway])
     return gateway
 
 

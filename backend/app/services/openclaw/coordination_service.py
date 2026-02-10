@@ -36,7 +36,7 @@ from app.services.openclaw.exceptions import (
 )
 from app.services.openclaw.internal import agent_key, with_coordination_gateway_retry
 from app.services.openclaw.policies import OpenClawAuthorizationPolicy
-from app.services.openclaw.provisioning import (
+from app.services.openclaw.provisioning_db import (
     LeadAgentOptions,
     LeadAgentRequest,
     OpenClawProvisioningService,
@@ -542,7 +542,9 @@ class GatewayCoordinationService(AbstractGatewayMessagingService):
         board: Board,
         message: str,
     ) -> tuple[Agent, bool]:
-        lead, lead_created = await OpenClawProvisioningService(self.session).ensure_board_lead_agent(
+        lead, lead_created = await OpenClawProvisioningService(
+            self.session
+        ).ensure_board_lead_agent(
             request=LeadAgentRequest(
                 board=board,
                 gateway=gateway,

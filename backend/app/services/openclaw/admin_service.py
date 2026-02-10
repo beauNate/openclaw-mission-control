@@ -26,7 +26,8 @@ from app.models.gateways import Gateway
 from app.models.tasks import Task
 from app.schemas.gateways import GatewayTemplatesSyncResult
 from app.services.openclaw.constants import DEFAULT_HEARTBEAT_CONFIG
-from app.services.openclaw.provisioning import (
+from app.services.openclaw.provisioning import OpenClawGatewayProvisioner
+from app.services.openclaw.provisioning_db import (
     GatewayTemplateSyncOptions,
     OpenClawProvisioningService,
 )
@@ -203,6 +204,11 @@ class GatewayAdminLifecycleService:
             self.session,
             organization_id=gateway.organization_id,
         )
+        if template_user is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Organization owner not found (required for gateway agent USER.md rendering).",
+            )
         raw_token = generate_agent_token()
         agent.agent_token_hash = hash_agent_token(raw_token)
         agent.provision_requested_at = utcnow()
@@ -215,8 +221,9 @@ class GatewayAdminLifecycleService:
         await self.session.refresh(agent)
         if not gateway.url:
             return agent
+
         try:
-            await OpenClawProvisioningService().apply_agent_lifecycle(
+            await OpenClawGatewayProvisioner().apply_agent_lifecycle(
                 agent=agent,
                 gateway=gateway,
                 board=None,
@@ -226,19 +233,17 @@ class GatewayAdminLifecycleService:
                 wake=notify,
                 deliver_wakeup=True,
             )
-            self.logger.info(
-                "gateway.main_agent.provision_success gateway_id=%s agent_id=%s action=%s",
-                gateway.id,
-                agent.id,
-                action,
-            )
         except OpenClawGatewayError as exc:
-            self.logger.warning(
+            self.logger.error(
                 "gateway.main_agent.provision_failed_gateway gateway_id=%s agent_id=%s error=%s",
                 gateway.id,
                 agent.id,
                 str(exc),
             )
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Gateway {action} failed: {exc}",
+            ) from exc
         except (OSError, RuntimeError, ValueError) as exc:
             self.logger.error(
                 "gateway.main_agent.provision_failed gateway_id=%s agent_id=%s error=%s",
@@ -246,15 +251,25 @@ class GatewayAdminLifecycleService:
                 agent.id,
                 str(exc),
             )
-        except Exception as exc:  # pragma: no cover - defensive fallback
-            self.logger.critical(
-                "gateway.main_agent.provision_failed_unexpected gateway_id=%s agent_id=%s "
-                "error_type=%s error=%s",
-                gateway.id,
-                agent.id,
-                exc.__class__.__name__,
-                str(exc),
-            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Unexpected error {action}ing gateway provisioning.",
+            ) from exc
+
+        agent.status = "online"
+        agent.provision_requested_at = None
+        agent.provision_action = None
+        agent.updated_at = utcnow()
+        self.session.add(agent)
+        await self.session.commit()
+        await self.session.refresh(agent)
+
+        self.logger.info(
+            "gateway.main_agent.provision_success gateway_id=%s agent_id=%s action=%s",
+            gateway.id,
+            agent.id,
+            action,
+        )
         return agent
 
     async def ensure_main_agent(
