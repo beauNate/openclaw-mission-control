@@ -35,6 +35,7 @@ from app.services.openclaw.exceptions import (
     map_gateway_error_to_http_exception,
 )
 from app.services.openclaw.internal import agent_key, with_coordination_gateway_retry
+from app.services.openclaw.policies import OpenClawAuthorizationPolicy
 from app.services.openclaw.provisioning import (
     LeadAgentOptions,
     LeadAgentRequest,
@@ -140,19 +141,12 @@ class GatewayCoordinationService(AbstractGatewayMessagingService):
         self,
         actor_agent: Agent,
     ) -> tuple[Gateway, GatewayClientConfig]:
-        detail = "Only the dedicated gateway agent may call this endpoint."
-        if actor_agent.board_id is not None:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
         gateway = await Gateway.objects.by_id(actor_agent.gateway_id).first(self.session)
-        if gateway is None:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
-        if actor_agent.openclaw_session_id != GatewayAgentIdentity.session_key(gateway):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
-        if not gateway.url:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Gateway url is required",
-            )
+        gateway = OpenClawAuthorizationPolicy.require_gateway_main_actor_binding(
+            actor_agent=actor_agent,
+            gateway=gateway,
+        )
+        OpenClawAuthorizationPolicy.require_gateway_configured(gateway)
         return gateway, GatewayClientConfig(url=gateway.url, token=gateway.token)
 
     async def require_gateway_board(
@@ -162,11 +156,10 @@ class GatewayCoordinationService(AbstractGatewayMessagingService):
         board_id: UUID | str,
     ) -> Board:
         board = await Board.objects.by_id(board_id).first(self.session)
-        if board is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Board not found")
-        if board.gateway_id != gateway.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
-        return board
+        return OpenClawAuthorizationPolicy.require_board_in_gateway(
+            board=board,
+            gateway=gateway,
+        )
 
     async def _board_agent_or_404(
         self,
@@ -175,9 +168,10 @@ class GatewayCoordinationService(AbstractGatewayMessagingService):
         agent_id: str,
     ) -> Agent:
         target = await Agent.objects.by_id(agent_id).first(self.session)
-        if target is None or (target.board_id and target.board_id != board.id):
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-        return target
+        return OpenClawAuthorizationPolicy.require_board_agent_target(
+            target=target,
+            board=board,
+        )
 
     @staticmethod
     def _gateway_file_content(payload: object) -> str | None:

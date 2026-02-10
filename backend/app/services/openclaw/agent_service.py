@@ -44,6 +44,7 @@ from app.services.openclaw.constants import (
     DEFAULT_HEARTBEAT_CONFIG,
     OFFLINE_AFTER,
 )
+from app.services.openclaw.policies import OpenClawAuthorizationPolicy
 from app.services.openclaw.provisioning import (
     AgentProvisionRequest,
     MainAgentProvisionRequest,
@@ -500,18 +501,26 @@ class AgentLifecycleService:
         write: bool,
     ) -> None:
         if agent.board_id is None:
-            if not is_org_admin(ctx.member):
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+            OpenClawAuthorizationPolicy.require_org_admin(is_admin=is_org_admin(ctx.member))
             gateway = await self.get_main_agent_gateway(agent)
-            if gateway is None or gateway.organization_id != ctx.organization.id:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+            OpenClawAuthorizationPolicy.require_gateway_in_org(
+                gateway=gateway,
+                organization_id=ctx.organization.id,
+            )
             return
 
         board = await Board.objects.by_id(agent.board_id).first(self.session)
-        if board is None or board.organization_id != ctx.organization.id:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-        if not await has_board_access(self.session, member=ctx.member, board=board, write=write):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+        board = OpenClawAuthorizationPolicy.require_board_in_org(
+            board=board,
+            organization_id=ctx.organization.id,
+        )
+        allowed = await has_board_access(
+            self.session,
+            member=ctx.member,
+            board=board,
+            write=write,
+        )
+        OpenClawAuthorizationPolicy.require_board_write_access(allowed=allowed)
 
     @staticmethod
     def record_heartbeat(session: AsyncSession, agent: Agent) -> None:
@@ -544,27 +553,15 @@ class AgentLifecycleService:
     ) -> AgentCreate:
         if actor.actor_type == "user":
             ctx = await self.require_user_context(actor.user)
-            if not is_org_admin(ctx.member):
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+            OpenClawAuthorizationPolicy.require_org_admin(is_admin=is_org_admin(ctx.member))
             return payload
 
         if actor.actor_type == "agent":
-            if not actor.agent or not actor.agent.is_board_lead:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Only board leads can create agents",
-                )
-            if not actor.agent.board_id:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Board lead must be assigned to a board",
-                )
-            if payload.board_id and payload.board_id != actor.agent.board_id:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Board leads can only create agents in their own board",
-                )
-            return AgentCreate(**{**payload.model_dump(), "board_id": actor.agent.board_id})
+            board_id = OpenClawAuthorizationPolicy.resolve_board_lead_create_board_id(
+                actor_agent=actor.agent,
+                requested_board_id=payload.board_id,
+            )
+            return AgentCreate(**{**payload.model_dump(), "board_id": board_id})
 
         return payload
 
@@ -718,8 +715,8 @@ class AgentLifecycleService:
         updates: dict[str, Any],
         make_main: bool | None,
     ) -> None:
-        if make_main and not is_org_admin(ctx.member):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+        if make_main:
+            OpenClawAuthorizationPolicy.require_org_admin(is_admin=is_org_admin(ctx.member))
         if "status" in updates:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -727,15 +724,17 @@ class AgentLifecycleService:
             )
         if "board_id" in updates and updates["board_id"] is not None:
             new_board = await self.require_board(updates["board_id"])
-            if new_board.organization_id != ctx.organization.id:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-            if not await has_board_access(
+            OpenClawAuthorizationPolicy.require_board_in_org(
+                board=new_board,
+                organization_id=ctx.organization.id,
+            )
+            allowed = await has_board_access(
                 self.session,
                 member=ctx.member,
                 board=new_board,
                 write=True,
-            ):
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+            )
+            OpenClawAuthorizationPolicy.require_board_write_access(allowed=allowed)
 
     async def apply_agent_update_mutations(
         self,
@@ -919,8 +918,7 @@ class AgentLifecycleService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
         if actor.actor_type == "user":
             ctx = await self.require_user_context(actor.user)
-            if not is_org_admin(ctx.member):
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+            OpenClawAuthorizationPolicy.require_org_admin(is_admin=is_org_admin(ctx.member))
 
         board = await self.require_board(
             payload.board_id,
@@ -1045,8 +1043,10 @@ class AgentLifecycleService:
         ctx: OrganizationContext,
     ) -> LimitOffsetPage[AgentRead]:
         board_ids = await list_accessible_board_ids(self.session, member=ctx.member, write=False)
-        if board_id is not None and board_id not in set(board_ids):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+        if board_id is not None:
+            OpenClawAuthorizationPolicy.require_board_write_access(
+                allowed=board_id in set(board_ids),
+            )
         base_filters: list[ColumnElement[bool]] = []
         if board_ids:
             base_filters.append(col(Agent.board_id).in_(board_ids))
@@ -1099,8 +1099,8 @@ class AgentLifecycleService:
         last_seen = since_dt
         board_ids = await list_accessible_board_ids(self.session, member=ctx.member, write=False)
         allowed_ids = set(board_ids)
-        if board_id is not None and board_id not in allowed_ids:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+        if board_id is not None:
+            OpenClawAuthorizationPolicy.require_board_write_access(allowed=board_id in allowed_ids)
 
         async def event_generator() -> AsyncIterator[dict[str, str]]:
             nonlocal last_seen
@@ -1258,12 +1258,14 @@ class AgentLifecycleService:
         agent = await Agent.objects.by_id(agent_id).first(self.session)
         if agent is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-        if actor.actor_type == "agent" and actor.agent and actor.agent.id != agent.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+        if actor.actor_type == "agent":
+            OpenClawAuthorizationPolicy.require_same_agent_actor(
+                actor_agent_id=actor.agent.id if actor.agent else None,
+                target_agent_id=agent.id,
+            )
         if actor.actor_type == "user":
             ctx = await self.require_user_context(actor.user)
-            if not is_org_admin(ctx.member):
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+            OpenClawAuthorizationPolicy.require_org_admin(is_admin=is_org_admin(ctx.member))
             await self.require_agent_access(agent=agent, ctx=ctx, write=True)
         return await self.commit_heartbeat(
             agent=agent,
@@ -1301,8 +1303,11 @@ class AgentLifecycleService:
                 agent=agent,
                 user=actor.user,
             )
-        elif actor.actor_type == "agent" and actor.agent and actor.agent.id != agent.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+        elif actor.actor_type == "agent":
+            OpenClawAuthorizationPolicy.require_same_agent_actor(
+                actor_agent_id=actor.agent.id if actor.agent else None,
+                target_agent_id=agent.id,
+            )
 
         await self.ensure_heartbeat_session_key(
             agent=agent,

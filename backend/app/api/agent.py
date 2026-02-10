@@ -46,6 +46,7 @@ from app.schemas.tasks import TaskCommentCreate, TaskCommentRead, TaskCreate, Ta
 from app.services.activity_log import record_activity
 from app.services.openclaw.agent_service import AgentLifecycleService
 from app.services.openclaw.coordination_service import GatewayCoordinationService
+from app.services.openclaw.policies import OpenClawAuthorizationPolicy
 from app.services.task_dependencies import (
     blocked_by_dependency_ids,
     dependency_status_by_id,
@@ -120,8 +121,22 @@ def _actor(agent_ctx: AgentAuthContext) -> ActorContext:
 
 
 def _guard_board_access(agent_ctx: AgentAuthContext, board: Board) -> None:
-    if agent_ctx.agent.board_id and agent_ctx.agent.board_id != board.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    allowed = not (agent_ctx.agent.board_id and agent_ctx.agent.board_id != board.id)
+    OpenClawAuthorizationPolicy.require_board_write_access(allowed=allowed)
+
+
+def _require_board_lead(agent_ctx: AgentAuthContext) -> Agent:
+    return OpenClawAuthorizationPolicy.require_board_lead_actor(
+        actor_agent=agent_ctx.agent,
+        detail="Only board leads can perform this action",
+    )
+
+
+def _guard_task_access(agent_ctx: AgentAuthContext, task: Task) -> None:
+    allowed = not (
+        agent_ctx.agent.board_id and task.board_id and agent_ctx.agent.board_id != task.board_id
+    )
+    OpenClawAuthorizationPolicy.require_board_write_access(allowed=allowed)
 
 
 @router.get("/boards", response_model=DefaultLimitOffsetPage[BoardRead])
@@ -156,8 +171,10 @@ async def list_agents(
     """List agents, optionally filtered to a board."""
     statement = select(Agent)
     if agent_ctx.agent.board_id:
-        if board_id and board_id != agent_ctx.agent.board_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+        if board_id:
+            OpenClawAuthorizationPolicy.require_board_write_access(
+                allowed=board_id == agent_ctx.agent.board_id,
+            )
         statement = statement.where(Agent.board_id == agent_ctx.agent.board_id)
     elif board_id:
         statement = statement.where(Agent.board_id == board_id)
@@ -203,8 +220,7 @@ async def create_task(
 ) -> TaskRead:
     """Create a task on the board as the lead agent."""
     _guard_board_access(agent_ctx, board)
-    if not agent_ctx.agent.is_board_lead:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    _require_board_lead(agent_ctx)
     data = payload.model_dump(exclude={"depends_on_task_ids"})
     depends_on_task_ids = list(payload.depends_on_task_ids)
 
@@ -297,8 +313,7 @@ async def update_task(
     agent_ctx: AgentAuthContext = AGENT_CTX_DEP,
 ) -> TaskRead:
     """Update a task after board-level access checks."""
-    if agent_ctx.agent.board_id and task.board_id and agent_ctx.agent.board_id != task.board_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    _guard_task_access(agent_ctx, task)
     return await tasks_api.update_task(
         payload=payload,
         task=task,
@@ -317,8 +332,7 @@ async def list_task_comments(
     agent_ctx: AgentAuthContext = AGENT_CTX_DEP,
 ) -> LimitOffsetPage[TaskCommentRead]:
     """List comments for a task visible to the authenticated agent."""
-    if agent_ctx.agent.board_id and task.board_id and agent_ctx.agent.board_id != task.board_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    _guard_task_access(agent_ctx, task)
     return await tasks_api.list_task_comments(
         task=task,
         session=session,
@@ -336,8 +350,7 @@ async def create_task_comment(
     agent_ctx: AgentAuthContext = AGENT_CTX_DEP,
 ) -> ActivityEvent:
     """Create a task comment on behalf of the authenticated agent."""
-    if agent_ctx.agent.board_id and task.board_id and agent_ctx.agent.board_id != task.board_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    _guard_task_access(agent_ctx, task)
     return await tasks_api.create_task_comment(
         payload=payload,
         task=task,
@@ -444,12 +457,9 @@ async def create_agent(
     agent_ctx: AgentAuthContext = AGENT_CTX_DEP,
 ) -> AgentRead:
     """Create an agent on the caller's board."""
-    if not agent_ctx.agent.is_board_lead:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
-    if not agent_ctx.agent.board_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    lead = _require_board_lead(agent_ctx)
     payload = AgentCreate(
-        **{**payload.model_dump(), "board_id": agent_ctx.agent.board_id},
+        **{**payload.model_dump(), "board_id": lead.board_id},
     )
     return await agents_api.create_agent(
         payload=payload,
@@ -468,8 +478,7 @@ async def nudge_agent(
 ) -> OkResponse:
     """Send a direct nudge message to a board agent."""
     _guard_board_access(agent_ctx, board)
-    if not agent_ctx.agent.is_board_lead:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    _require_board_lead(agent_ctx)
     coordination = GatewayCoordinationService(session)
     await coordination.nudge_board_agent(
         board=board,
@@ -506,8 +515,10 @@ async def get_agent_soul(
 ) -> str:
     """Fetch the target agent's SOUL.md content from the gateway."""
     _guard_board_access(agent_ctx, board)
-    if not agent_ctx.agent.is_board_lead and str(agent_ctx.agent.id) != agent_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    OpenClawAuthorizationPolicy.require_board_lead_or_same_actor(
+        actor_agent=agent_ctx.agent,
+        target_agent_id=agent_id,
+    )
     coordination = GatewayCoordinationService(session)
     return await coordination.get_agent_soul(
         board=board,
@@ -526,8 +537,7 @@ async def update_agent_soul(
 ) -> OkResponse:
     """Update an agent's SOUL.md content in DB and gateway."""
     _guard_board_access(agent_ctx, board)
-    if not agent_ctx.agent.is_board_lead:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    _require_board_lead(agent_ctx)
     coordination = GatewayCoordinationService(session)
     await coordination.update_agent_soul(
         board=board,
@@ -553,8 +563,7 @@ async def ask_user_via_gateway_main(
 ) -> GatewayMainAskUserResponse:
     """Route a lead's ask-user request through the dedicated gateway agent."""
     _guard_board_access(agent_ctx, board)
-    if not agent_ctx.agent.is_board_lead:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    _require_board_lead(agent_ctx)
     coordination = GatewayCoordinationService(session)
     return await coordination.ask_user_via_gateway_main(
         board=board,

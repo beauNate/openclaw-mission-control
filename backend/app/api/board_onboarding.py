@@ -34,6 +34,7 @@ from app.schemas.board_onboarding import (
 )
 from app.schemas.boards import BoardRead
 from app.services.openclaw.onboarding_service import BoardOnboardingMessagingService
+from app.services.openclaw.policies import OpenClawAuthorizationPolicy
 from app.services.openclaw.provisioning import (
     LeadAgentOptions,
     LeadAgentRequest,
@@ -307,13 +308,15 @@ async def agent_onboarding_update(
     if actor.actor_type != "agent" or actor.agent is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     agent = actor.agent
-    if agent.board_id is not None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    OpenClawAuthorizationPolicy.require_gateway_scoped_actor(actor_agent=agent)
 
     if board.gateway_id:
         gateway = await Gateway.objects.by_id(board.gateway_id).first(session)
-        if gateway and (agent.gateway_id != gateway.id or agent.board_id is not None):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+        if gateway:
+            OpenClawAuthorizationPolicy.require_gateway_main_actor_binding(
+                actor_agent=agent,
+                gateway=gateway,
+            )
 
     onboarding = (
         await BoardOnboardingSession.objects.filter_by(board_id=board.id)

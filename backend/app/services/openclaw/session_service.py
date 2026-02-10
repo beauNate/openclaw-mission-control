@@ -30,6 +30,7 @@ from app.schemas.gateway_api import (
     GatewaySessionsResponse,
     GatewaysStatusResponse,
 )
+from app.services.openclaw.policies import OpenClawAuthorizationPolicy
 from app.services.organizations import require_board_access
 
 if TYPE_CHECKING:
@@ -140,11 +141,7 @@ class GatewaySessionService:
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Board gateway_id is invalid",
             )
-        if not gateway.url:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Gateway url is required",
-            )
+        OpenClawAuthorizationPolicy.require_gateway_configured(gateway)
         main_agent = (
             await Agent.objects.filter_by(gateway_id=gateway.id)
             .filter(col(Agent.board_id).is_(None))
@@ -197,8 +194,11 @@ class GatewaySessionService:
 
     @staticmethod
     def _require_same_org(board: Board | None, organization_id: UUID) -> None:
-        if board is not None and board.organization_id != organization_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+        if board is None:
+            return
+        OpenClawAuthorizationPolicy.require_board_write_access(
+            allowed=board.organization_id == organization_id,
+        )
 
     async def get_status(
         self,
