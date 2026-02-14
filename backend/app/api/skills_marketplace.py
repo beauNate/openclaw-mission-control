@@ -20,10 +20,8 @@ from sqlmodel import col, select
 from app.api.deps import require_org_admin
 from app.core.time import utcnow
 from app.db.session import get_session
-from app.models.gateway_installed_skills import GatewayInstalledSkill
 from app.models.gateways import Gateway
-from app.models.marketplace_skills import MarketplaceSkill
-from app.models.skill_packs import SkillPack
+from app.models.skills import GatewayInstalledSkill, MarketplaceSkill, SkillPack
 from app.schemas.common import OkResponse
 from app.schemas.skills_marketplace import (
     MarketplaceSkillActionResponse,

@@ -23,12 +23,10 @@ from app.api.skills_marketplace import (
 )
 from app.api.skills_marketplace import router as skills_marketplace_router
 from app.db.session import get_session
-from app.models.gateway_installed_skills import GatewayInstalledSkill
 from app.models.gateways import Gateway
-from app.models.marketplace_skills import MarketplaceSkill
 from app.models.organization_members import OrganizationMember
 from app.models.organizations import Organization
-from app.models.skill_packs import SkillPack
+from app.models.skills import GatewayInstalledSkill, MarketplaceSkill, SkillPack
 from app.services.organizations import OrganizationContext
 
 

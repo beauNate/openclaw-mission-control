@@ -17,7 +17,7 @@ from app.models.organization_invite_board_access import OrganizationInviteBoardA
 from app.models.organization_invites import OrganizationInvite
 from app.models.organization_members import OrganizationMember
 from app.models.organizations import Organization
-from app.models.skill_packs import SkillPack
+from app.models.skills import SkillPack
 from app.models.users import User
 from app.schemas.organizations import OrganizationBoardAccessSpec, OrganizationMemberAccessUpdate
 from app.services import organizations

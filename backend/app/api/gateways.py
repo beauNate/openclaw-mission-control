@@ -14,8 +14,8 @@ from app.db import crud
 from app.db.pagination import paginate
 from app.db.session import get_session
 from app.models.agents import Agent
-from app.models.gateway_installed_skills import GatewayInstalledSkill
 from app.models.gateways import Gateway
+from app.models.skills import GatewayInstalledSkill
 from app.schemas.common import OkResponse
 from app.schemas.gateways import (
     GatewayCreate,
