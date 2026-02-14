@@ -88,17 +88,35 @@ def test_board_rule_toggles_have_expected_defaults() -> None:
     assert created.require_review_before_done is False
     assert created.block_status_changes_with_pending_approval is False
     assert created.only_lead_can_change_status is False
+    assert created.max_agents == 1
 
     updated = BoardUpdate(
         require_approval_for_done=False,
         require_review_before_done=True,
         block_status_changes_with_pending_approval=True,
         only_lead_can_change_status=True,
+        max_agents=3,
     )
     assert updated.require_approval_for_done is False
     assert updated.require_review_before_done is True
     assert updated.block_status_changes_with_pending_approval is True
     assert updated.only_lead_can_change_status is True
+    assert updated.max_agents == 3
+
+
+def test_board_max_agents_must_be_non_negative() -> None:
+    """Board max_agents should reject negative values."""
+    with pytest.raises(ValueError):
+        BoardCreate(
+            name="Ops Board",
+            slug="ops-board",
+            description="Operations workflow board.",
+            gateway_id=uuid4(),
+            max_agents=-1,
+        )
+
+    with pytest.raises(ValueError):
+        BoardUpdate(max_agents=-1)
 
 
 def test_onboarding_confirm_requires_goal_fields() -> None:

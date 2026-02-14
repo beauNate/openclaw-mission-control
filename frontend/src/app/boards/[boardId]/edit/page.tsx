@@ -237,6 +237,7 @@ export default function EditBoardPage() {
   const [onlyLeadCanChangeStatus, setOnlyLeadCanChangeStatus] = useState<
     boolean | undefined
   >(undefined);
+  const [maxAgents, setMaxAgents] = useState<number | undefined>(undefined);
   const [successMetrics, setSuccessMetrics] = useState<string | undefined>(
     undefined,
   );
@@ -433,6 +434,7 @@ export default function EditBoardPage() {
     false;
   const resolvedOnlyLeadCanChangeStatus =
     onlyLeadCanChangeStatus ?? baseBoard?.only_lead_can_change_status ?? false;
+  const resolvedMaxAgents = maxAgents ?? baseBoard?.max_agents ?? 1;
   const resolvedSuccessMetrics =
     successMetrics ??
     (baseBoard?.success_metrics
@@ -507,6 +509,7 @@ export default function EditBoardPage() {
       updated.block_status_changes_with_pending_approval ?? false,
     );
     setOnlyLeadCanChangeStatus(updated.only_lead_can_change_status ?? false);
+    setMaxAgents(updated.max_agents ?? 1);
     setSuccessMetrics(
       updated.success_metrics
         ? JSON.stringify(updated.success_metrics, null, 2)
@@ -533,6 +536,10 @@ export default function EditBoardPage() {
     const trimmedDescription = resolvedDescription.trim();
     if (!trimmedDescription) {
       setError("Board description is required.");
+      return;
+    }
+    if (!Number.isInteger(resolvedMaxAgents) || resolvedMaxAgents < 0) {
+      setError("Max worker agents must be a non-negative integer.");
       return;
     }
 
@@ -569,6 +576,7 @@ export default function EditBoardPage() {
       block_status_changes_with_pending_approval:
         resolvedBlockStatusChangesWithPendingApproval,
       only_lead_can_change_status: resolvedOnlyLeadCanChangeStatus,
+      max_agents: resolvedMaxAgents,
       success_metrics: resolvedBoardType === "general" ? null : parsedMetrics,
       target_date:
         resolvedBoardType === "general"
@@ -733,6 +741,26 @@ export default function EditBoardPage() {
                     <SelectItem value="general">General</SelectItem>
                   </SelectContent>
                 </Select>
+                <div className="space-y-2 pt-1">
+                  <label className="text-sm font-medium text-slate-900">
+                    Max worker agents
+                  </label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={resolvedMaxAgents}
+                    onChange={(event) => {
+                      const next = Number.parseInt(event.target.value, 10);
+                      if (Number.isNaN(next)) {
+                        setMaxAgents(0);
+                        return;
+                      }
+                      setMaxAgents(Math.max(0, next));
+                    }}
+                    disabled={isLoading}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-900">

@@ -922,6 +922,49 @@ class AgentLifecycleService(OpenClawDBService):
 
         return payload
 
+    async def count_non_lead_agents_for_board(
+        self,
+        *,
+        board_id: UUID,
+    ) -> int:
+        """Count board-scoped non-lead agents for spawn limit checks."""
+        statement = (
+            select(func.count(col(Agent.id)))
+            .where(col(Agent.board_id) == board_id)
+            .where(col(Agent.is_board_lead).is_(False))
+        )
+        count = (await self.session.exec(statement)).one()
+        return int(count or 0)
+
+    async def enforce_board_spawn_limit_for_lead(
+        self,
+        *,
+        board: Board,
+        actor: ActorContextLike,
+    ) -> None:
+        """Enforce `board.max_agents` when creation is requested by a lead agent.
+
+        The cap excludes the board lead itself.
+        """
+        if actor.actor_type != "agent":
+            return
+        if actor.agent is None or not actor.agent.is_board_lead:
+            return
+
+        worker_count = await self.count_non_lead_agents_for_board(board_id=board.id)
+        if worker_count < board.max_agents:
+            return
+
+        noun = "agent" if board.max_agents == 1 else "agents"
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Board worker-agent limit reached: "
+                f"max_agents={board.max_agents} (excluding the lead); "
+                f"cannot create more than {board.max_agents} {noun}."
+            ),
+        )
+
     async def ensure_unique_agent_name(
         self,
         *,
@@ -1484,6 +1527,7 @@ class AgentLifecycleService(OpenClawDBService):
             user=actor.user if actor.actor_type == "user" else None,
             write=actor.actor_type == "user",
         )
+        await self.enforce_board_spawn_limit_for_lead(board=board, actor=actor)
         gateway, _client_config = await self.require_gateway(board)
         data = payload.model_dump()
         data["gateway_id"] = gateway.id

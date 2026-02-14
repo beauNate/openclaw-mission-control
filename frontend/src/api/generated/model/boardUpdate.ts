@@ -17,6 +17,7 @@ export interface BoardUpdate {
   gateway_id?: string | null;
   goal_confirmed?: boolean | null;
   goal_source?: string | null;
+  max_agents?: number | null;
   name?: string | null;
   objective?: string | null;
   only_lead_can_change_status?: boolean | null;

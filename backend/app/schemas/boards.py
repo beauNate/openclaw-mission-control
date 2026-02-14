@@ -7,7 +7,7 @@ from typing import Self
 from uuid import UUID
 
 from pydantic import model_validator
-from sqlmodel import SQLModel
+from sqlmodel import Field, SQLModel
 
 _ERR_GOAL_FIELDS_REQUIRED = "Confirmed goal boards require objective and success_metrics"
 _ERR_GATEWAY_REQUIRED = "gateway_id is required"
@@ -33,6 +33,7 @@ class BoardBase(SQLModel):
     require_review_before_done: bool = False
     block_status_changes_with_pending_approval: bool = False
     only_lead_can_change_status: bool = False
+    max_agents: int = Field(default=1, ge=0)
 
 
 class BoardCreate(BoardBase):
@@ -76,6 +77,7 @@ class BoardUpdate(SQLModel):
     require_review_before_done: bool | None = None
     block_status_changes_with_pending_approval: bool | None = None
     only_lead_can_change_status: bool | None = None
+    max_agents: int | None = Field(default=None, ge=0)
 
     @model_validator(mode="after")
     def validate_gateway_id(self) -> Self:
