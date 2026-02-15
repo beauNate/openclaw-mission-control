@@ -113,6 +113,7 @@ class GatewayTemplateSyncOptions:
     reset_sessions: bool = False
     rotate_tokens: bool = False
     force_bootstrap: bool = False
+    overwrite: bool = False
     board_id: UUID | None = None
 
 
@@ -569,6 +570,7 @@ async def _sync_one_agent(
                 user=ctx.options.user,
                 action="update",
                 force_bootstrap=ctx.options.force_bootstrap,
+                overwrite=ctx.options.overwrite,
                 reset_session=ctx.options.reset_sessions,
                 wake=False,
             )
@@ -639,6 +641,7 @@ async def _sync_main_agent(
                 user=ctx.options.user,
                 action="update",
                 force_bootstrap=ctx.options.force_bootstrap,
+                overwrite=ctx.options.overwrite,
                 reset_session=ctx.options.reset_sessions,
                 wake=False,
             )

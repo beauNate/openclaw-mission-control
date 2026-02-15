@@ -12,5 +12,6 @@ export type SyncGatewayTemplatesApiV1GatewaysGatewayIdTemplatesSyncPostParams =
     reset_sessions?: boolean;
     rotate_tokens?: boolean;
     force_bootstrap?: boolean;
+    overwrite?: boolean;
     board_id?: string | null;
   };

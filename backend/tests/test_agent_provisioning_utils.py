@@ -216,8 +216,8 @@ async def test_provision_overwrites_user_md_on_first_provision(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_set_agent_files_update_writes_zero_size_user_md():
-    """Treat empty placeholder files as missing during update."""
+async def test_set_agent_files_update_preserves_user_md_even_when_size_zero():
+    """Update should preserve editable files unless overwrite is explicitly requested."""
 
     class _ControlPlaneStub:
         def __init__(self):
@@ -277,6 +277,135 @@ async def test_set_agent_files_update_writes_zero_size_user_md():
         rendered={"USER.md": "filled"},
         existing_files={"USER.md": {"name": "USER.md", "missing": False, "size": 0}},
         action="update",
+    )
+    assert cp.writes == []
+
+
+@pytest.mark.asyncio
+async def test_set_agent_files_update_preserves_nonmissing_user_md():
+    class _ControlPlaneStub:
+        def __init__(self):
+            self.writes: list[tuple[str, str]] = []
+
+        async def ensure_agent_session(self, session_key, *, label=None):
+            return None
+
+        async def reset_agent_session(self, session_key):
+            return None
+
+        async def delete_agent_session(self, session_key):
+            return None
+
+        async def upsert_agent(self, registration):
+            return None
+
+        async def delete_agent(self, agent_id, *, delete_files=True):
+            return None
+
+        async def list_agent_files(self, agent_id):
+            return {}
+
+        async def set_agent_file(self, *, agent_id, name, content):
+            self.writes.append((name, content))
+
+        async def patch_agent_heartbeats(self, entries):
+            return None
+
+    @dataclass
+    class _GatewayTiny:
+        id: UUID
+        name: str
+        url: str
+        token: str | None
+        workspace_root: str
+
+    class _Manager(agent_provisioning.BaseAgentLifecycleManager):
+        def _agent_id(self, agent):
+            return "agent-x"
+
+        def _build_context(self, *, agent, auth_token, user, board):
+            return {}
+
+    gateway = _GatewayTiny(
+        id=uuid4(),
+        name="G",
+        url="ws://x",
+        token=None,
+        workspace_root="/tmp",
+    )
+    cp = _ControlPlaneStub()
+    mgr = _Manager(gateway, cp)  # type: ignore[arg-type]
+
+    await mgr._set_agent_files(
+        agent_id="agent-x",
+        rendered={"USER.md": "filled"},
+        existing_files={"USER.md": {"name": "USER.md", "missing": False}},
+        action="update",
+    )
+    assert cp.writes == []
+
+
+@pytest.mark.asyncio
+async def test_set_agent_files_update_overwrite_writes_preserved_user_md():
+    class _ControlPlaneStub:
+        def __init__(self):
+            self.writes: list[tuple[str, str]] = []
+
+        async def ensure_agent_session(self, session_key, *, label=None):
+            return None
+
+        async def reset_agent_session(self, session_key):
+            return None
+
+        async def delete_agent_session(self, session_key):
+            return None
+
+        async def upsert_agent(self, registration):
+            return None
+
+        async def delete_agent(self, agent_id, *, delete_files=True):
+            return None
+
+        async def list_agent_files(self, agent_id):
+            return {}
+
+        async def set_agent_file(self, *, agent_id, name, content):
+            self.writes.append((name, content))
+
+        async def patch_agent_heartbeats(self, entries):
+            return None
+
+    @dataclass
+    class _GatewayTiny:
+        id: UUID
+        name: str
+        url: str
+        token: str | None
+        workspace_root: str
+
+    class _Manager(agent_provisioning.BaseAgentLifecycleManager):
+        def _agent_id(self, agent):
+            return "agent-x"
+
+        def _build_context(self, *, agent, auth_token, user, board):
+            return {}
+
+    gateway = _GatewayTiny(
+        id=uuid4(),
+        name="G",
+        url="ws://x",
+        token=None,
+        workspace_root="/tmp",
+    )
+    cp = _ControlPlaneStub()
+    mgr = _Manager(gateway, cp)  # type: ignore[arg-type]
+
+    await mgr._set_agent_files(
+        agent_id="agent-x",
+        rendered={"USER.md": "filled"},
+        existing_files={"USER.md": {"name": "USER.md", "missing": False}},
+        action="update",
+        overwrite=True,
     )
     assert ("USER.md", "filled") in cp.writes
 

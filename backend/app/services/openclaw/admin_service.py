@@ -347,6 +347,7 @@ class GatewayAdminLifecycleService(OpenClawDBService):
                 reset_sessions=query.reset_sessions,
                 rotate_tokens=query.rotate_tokens,
                 force_bootstrap=query.force_bootstrap,
+                overwrite=query.overwrite,
                 board_id=query.board_id,
             ),
         )

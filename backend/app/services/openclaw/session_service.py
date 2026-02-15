@@ -48,6 +48,7 @@ class GatewayTemplateSyncQuery:
     reset_sessions: bool
     rotate_tokens: bool
     force_bootstrap: bool
+    overwrite: bool
     board_id: UUID | None
 
 

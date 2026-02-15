@@ -61,6 +61,7 @@ class ProvisionOptions:
 
     action: str = "provision"
     force_bootstrap: bool = False
+    overwrite: bool = False
 
 
 _ROLE_SOUL_MAX_CHARS = 24_000
@@ -715,6 +716,7 @@ class BaseAgentLifecycleManager(ABC):
         desired_file_names: set[str] | None = None,
         existing_files: dict[str, dict[str, Any]],
         action: str,
+        overwrite: bool = False,
     ) -> None:
         preserve_files = (
             self._preserve_files(agent) if agent is not None else set(PRESERVE_AGENT_EDITABLE_FILES)
@@ -728,15 +730,10 @@ class BaseAgentLifecycleManager(ABC):
             # Preserve "editable" files only during updates. During first-time provisioning,
             # the gateway may pre-create defaults for USER/MEMORY/etc, and we still want to
             # apply Mission Control's templates.
-            if action == "update" and name in preserve_files:
+            if action == "update" and not overwrite and name in preserve_files:
                 entry = existing_files.get(name)
                 if entry and not bool(entry.get("missing")):
-                    size = entry.get("size")
-                    if isinstance(size, int) and size == 0:
-                        # Treat 0-byte placeholders as missing so update can fill them.
-                        pass
-                    else:
-                        continue
+                    continue
             try:
                 await self._control_plane.set_agent_file(
                     agent_id=agent_id,
@@ -840,6 +837,7 @@ class BaseAgentLifecycleManager(ABC):
             desired_file_names=set(rendered.keys()),
             existing_files=existing_files,
             action=options.action,
+            overwrite=options.overwrite,
         )
 
 
@@ -1013,6 +1011,7 @@ class OpenClawGatewayProvisioner:
         user: User | None,
         action: str = "provision",
         force_bootstrap: bool = False,
+        overwrite: bool = False,
         reset_session: bool = False,
         wake: bool = True,
         deliver_wakeup: bool = True,
@@ -1056,7 +1055,11 @@ class OpenClawGatewayProvisioner:
             session_key=session_key,
             auth_token=auth_token,
             user=user,
-            options=ProvisionOptions(action=action, force_bootstrap=force_bootstrap),
+            options=ProvisionOptions(
+                action=action,
+                force_bootstrap=force_bootstrap,
+                overwrite=overwrite,
+            ),
             session_label=agent.name or "Gateway Agent",
         )
 

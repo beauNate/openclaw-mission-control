@@ -51,6 +51,11 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Force BOOTSTRAP.md to be rendered during update sync",
     )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Overwrite editable files (e.g. USER.md, MEMORY.md) during update sync",
+    )
     return parser.parse_args()
 
 
@@ -81,6 +86,7 @@ async def _run() -> int:
                 reset_sessions=bool(args.reset_sessions),
                 rotate_tokens=bool(args.rotate_tokens),
                 force_bootstrap=bool(args.force_bootstrap),
+                overwrite=bool(args.overwrite),
                 board_id=board_id,
             ),
         )
