@@ -1,8 +1,8 @@
 """Add allow_insecure_tls field to gateways.
 
-Revision ID: 2f3e4a5b6c7d
-Revises: 1a7b2c3d4e5f
-Create Date: 2026-02-22 05:30:00.000000
+Revision ID: b497b348ebb4
+Revises: c5d1a2b3e4f6
+Create Date: 2026-02-22 20:06:54.417968
 
 """
 
@@ -11,9 +11,10 @@ from __future__ import annotations
 import sqlalchemy as sa
 from alembic import op
 
+
 # revision identifiers, used by Alembic.
-revision = "2f3e4a5b6c7d"
-down_revision = "1a7b2c3d4e5f"
+revision = "b497b348ebb4"
+down_revision = "c5d1a2b3e4f6"
 branch_labels = None
 depends_on = None
 
