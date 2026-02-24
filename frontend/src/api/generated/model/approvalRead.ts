@@ -16,11 +16,16 @@ export interface ApprovalRead {
   task_id?: string | null;
   task_ids?: string[];
   payload?: ApprovalReadPayload;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
   confidence: number;
   rubric_scores?: ApprovalReadRubricScores;
   status?: ApprovalReadStatus;
   id: string;
   board_id: string;
+  task_titles?: string[];
   agent_id?: string | null;
   created_at: string;
   resolved_at?: string | null;

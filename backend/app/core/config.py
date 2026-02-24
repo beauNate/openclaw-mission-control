@@ -49,9 +49,25 @@ class Settings(BaseSettings):
 
     cors_origins: str = ""
     base_url: str = ""
+    # Security response headers (blank disables header injection)
+    security_header_x_content_type_options: str = ""
+    security_header_x_frame_options: str = ""
+    security_header_referrer_policy: str = ""
+    security_header_permissions_policy: str = ""
 
     # Database lifecycle
     db_auto_migrate: bool = False
+
+    # RQ queueing / dispatch
+    rq_redis_url: str = "redis://localhost:6379/0"
+    rq_queue_name: str = "default"
+    rq_dispatch_throttle_seconds: float = 15.0
+    rq_dispatch_max_retries: int = 3
+    rq_dispatch_retry_base_seconds: float = 10.0
+    rq_dispatch_retry_max_seconds: float = 120.0
+
+    # OpenClaw gateway runtime compatibility
+    gateway_min_version: str = "2026.02.9"
 
     # Logging
     log_level: str = "INFO"

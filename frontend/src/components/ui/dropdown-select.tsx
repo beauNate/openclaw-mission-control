@@ -40,6 +40,11 @@ type DropdownSelectProps = {
   emptyMessage?: string;
 };
 
+/**
+ * Derive a human-friendly trigger placeholder from an accessible `ariaLabel`.
+ *
+ * Keeps placeholder strings consistent even when callers only provide aria text.
+ */
 const resolvePlaceholder = (ariaLabel: string, placeholder?: string) => {
   if (placeholder) {
     return placeholder;
@@ -51,6 +56,11 @@ const resolvePlaceholder = (ariaLabel: string, placeholder?: string) => {
   return trimmed.endsWith("...") ? trimmed : `${trimmed}...`;
 };
 
+/**
+ * Search input placeholder derived from `ariaLabel`.
+ *
+ * Example: ariaLabel="Select agent" -> "Search agent...".
+ */
 const resolveSearchPlaceholder = (
   ariaLabel: string,
   searchPlaceholder?: string,
@@ -107,6 +117,7 @@ export default function DropdownSelect({
     handleOpenChange(false);
   };
 
+  // Reset list scroll when opening or refining search so results start at the top.
   React.useEffect(() => {
     if (!open) {
       return;

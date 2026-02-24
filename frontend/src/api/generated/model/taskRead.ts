@@ -5,6 +5,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { TagRef } from "./tagRef";
+import type { TaskReadCustomFieldValues } from "./taskReadCustomFieldValues";
 import type { TaskReadStatus } from "./taskReadStatus";
 
 /**
@@ -28,4 +29,5 @@ export interface TaskRead {
   blocked_by_task_ids?: string[];
   is_blocked?: boolean;
   tags?: TagRef[];
+  custom_field_values?: TaskReadCustomFieldValues;
 }

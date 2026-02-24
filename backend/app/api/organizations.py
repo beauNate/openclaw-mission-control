@@ -24,6 +24,8 @@ from app.models.board_group_memory import BoardGroupMemory
 from app.models.board_groups import BoardGroup
 from app.models.board_memory import BoardMemory
 from app.models.board_onboarding import BoardOnboardingSession
+from app.models.board_webhook_payloads import BoardWebhookPayload
+from app.models.board_webhooks import BoardWebhook
 from app.models.boards import Board
 from app.models.gateways import Gateway
 from app.models.organization_board_access import OrganizationBoardAccess
@@ -125,7 +127,7 @@ async def create_organization(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     name = payload.name.strip()
     if not name:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
     existing = (
         await session.exec(
             select(Organization).where(
@@ -288,6 +290,18 @@ async def delete_my_org(
         session,
         BoardMemory,
         col(BoardMemory.board_id).in_(board_ids),
+        commit=False,
+    )
+    await crud.delete_where(
+        session,
+        BoardWebhookPayload,
+        col(BoardWebhookPayload.board_id).in_(board_ids),
+        commit=False,
+    )
+    await crud.delete_where(
+        session,
+        BoardWebhook,
+        col(BoardWebhook.board_id).in_(board_ids),
         commit=False,
     )
     await crud.delete_where(
@@ -499,7 +513,7 @@ async def update_member_access(
             .all(session)
         }
         if valid_board_ids != board_ids:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
 
     await apply_member_access_update(session, member=member, update=payload)
     await session.commit()
@@ -600,7 +614,7 @@ async def create_org_invite(
     """Create an organization invite for an email address."""
     email = normalize_invited_email(payload.invited_email)
     if not email:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
 
     existing_user = (
         await session.exec(select(User).where(func.lower(col(User.email)) == email))
@@ -640,7 +654,7 @@ async def create_org_invite(
             .all(session)
         }
         if valid_board_ids != board_ids:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
     await apply_invite_board_access(
         session,
         invite=invite,

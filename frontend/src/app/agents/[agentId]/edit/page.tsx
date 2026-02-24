@@ -31,11 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  DEFAULT_IDENTITY_PROFILE,
-  DEFAULT_SOUL_TEMPLATE,
-} from "@/lib/agent-templates";
+import { DEFAULT_IDENTITY_PROFILE } from "@/lib/agent-templates";
 
 type IdentityProfile = {
   role: string;
@@ -54,11 +50,6 @@ const EMOJI_OPTIONS = [
   { value: ":shield:", label: "Shield", glyph: "🛡️" },
   { value: ":memo:", label: "Notes", glyph: "📝" },
   { value: ":brain:", label: "Brain", glyph: "🧠" },
-];
-
-const HEARTBEAT_TARGET_OPTIONS: SearchableSelectOption[] = [
-  { value: "none", label: "None (no outbound message)" },
-  { value: "last", label: "Last channel" },
 ];
 
 const getBoardOptions = (boards: BoardRead[]): SearchableSelectOption[] =>
@@ -115,15 +106,9 @@ export default function EditAgentPage() {
   const [heartbeatEvery, setHeartbeatEvery] = useState<string | undefined>(
     undefined,
   );
-  const [heartbeatTarget, setHeartbeatTarget] = useState<string | undefined>(
-    undefined,
-  );
   const [identityProfile, setIdentityProfile] = useState<
     IdentityProfile | undefined
   >(undefined);
-  const [soulTemplate, setSoulTemplate] = useState<string | undefined>(
-    undefined,
-  );
   const [error, setError] = useState<string | null>(null);
 
   const boardsQuery = useListBoardsApiV1BoardsGet<
@@ -173,13 +158,11 @@ export default function EditAgentPage() {
     if (heartbeat && typeof heartbeat === "object") {
       const record = heartbeat as Record<string, unknown>;
       const every = record.every;
-      const target = record.target;
       return {
         every: typeof every === "string" && every.trim() ? every : "10m",
-        target: typeof target === "string" && target.trim() ? target : "none",
       };
     }
-    return { every: "10m", target: "none" };
+    return { every: "10m" };
   }, [loadedAgent?.heartbeat_config]);
 
   const loadedIdentityProfile = useMemo(() => {
@@ -198,10 +181,6 @@ export default function EditAgentPage() {
     return withIdentityDefaults(null);
   }, [loadedAgent?.identity_profile]);
 
-  const loadedSoulTemplate = useMemo(() => {
-    return loadedAgent?.soul_template?.trim() || DEFAULT_SOUL_TEMPLATE;
-  }, [loadedAgent?.soul_template]);
-
   const isLoading =
     boardsQuery.isLoading || agentQuery.isLoading || updateMutation.isPending;
   const errorMessage =
@@ -211,9 +190,7 @@ export default function EditAgentPage() {
   const resolvedIsGatewayMain =
     isGatewayMain ?? Boolean(loadedAgent?.is_gateway_main);
   const resolvedHeartbeatEvery = heartbeatEvery ?? loadedHeartbeat.every;
-  const resolvedHeartbeatTarget = heartbeatTarget ?? loadedHeartbeat.target;
   const resolvedIdentityProfile = identityProfile ?? loadedIdentityProfile;
-  const resolvedSoulTemplate = soulTemplate ?? loadedSoulTemplate;
 
   const resolvedBoardId = useMemo(() => {
     if (resolvedIsGatewayMain) return boardId ?? "";
@@ -256,7 +233,7 @@ export default function EditAgentPage() {
       heartbeat_config: {
         ...existingHeartbeat,
         every: resolvedHeartbeatEvery.trim() || "10m",
-        target: resolvedHeartbeatTarget,
+        target: "last",
         includeReasoning:
           typeof existingHeartbeat.includeReasoning === "boolean"
             ? existingHeartbeat.includeReasoning
@@ -266,7 +243,6 @@ export default function EditAgentPage() {
         loadedAgent.identity_profile,
         resolvedIdentityProfile,
       ) as unknown as Record<string, unknown> | null,
-      soul_template: resolvedSoulTemplate.trim() || null,
     };
     if (!resolvedIsGatewayMain) {
       payload.board_id = resolvedBoardId || null;
@@ -439,7 +415,7 @@ export default function EditAgentPage() {
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             Personality & behavior
           </p>
-          <div className="mt-4 space-y-6">
+          <div className="mt-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-900">
                 Communication style
@@ -455,17 +431,6 @@ export default function EditAgentPage() {
                 disabled={isLoading}
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-900">
-                Soul template
-              </label>
-              <Textarea
-                value={resolvedSoulTemplate}
-                onChange={(event) => setSoulTemplate(event.target.value)}
-                rows={10}
-                disabled={isLoading}
-              />
-            </div>
           </div>
         </div>
 
@@ -473,7 +438,7 @@ export default function EditAgentPage() {
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             Schedule & notifications
           </p>
-          <div className="mt-4 grid gap-6 md:grid-cols-2">
+          <div className="mt-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-900">
                 Interval
@@ -487,24 +452,6 @@ export default function EditAgentPage() {
               <p className="text-xs text-slate-500">
                 Set how often this agent runs HEARTBEAT.md.
               </p>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-900">
-                Target
-              </label>
-              <SearchableSelect
-                ariaLabel="Select heartbeat target"
-                value={resolvedHeartbeatTarget}
-                onValueChange={setHeartbeatTarget}
-                options={HEARTBEAT_TARGET_OPTIONS}
-                placeholder="Select target"
-                searchPlaceholder="Search targets..."
-                emptyMessage="No matching targets."
-                triggerClassName="w-full h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                contentClassName="rounded-xl border border-slate-200 shadow-lg"
-                itemClassName="px-4 py-3 text-sm text-slate-700 data-[selected=true]:bg-slate-50 data-[selected=true]:text-slate-900"
-                disabled={isLoading}
-              />
             </div>
           </div>
         </div>

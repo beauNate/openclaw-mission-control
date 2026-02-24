@@ -1041,6 +1041,8 @@ export function useGetBoardSnapshotApiV1BoardsBoardIdSnapshotGet<
 
 /**
  * Get a grouped snapshot across related boards.
+
+Returns high-signal cross-board status for dependency and overlap checks.
  * @summary Get Board Group Snapshot
  */
 export type getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetResponse200 =

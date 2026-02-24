@@ -29,7 +29,9 @@ from app.db.pagination import paginate
 from app.db.session import async_session_maker
 from app.models.activity_events import ActivityEvent
 from app.models.agents import Agent
+from app.models.approvals import Approval
 from app.models.board_memory import BoardMemory
+from app.models.board_webhooks import BoardWebhook
 from app.models.boards import Board
 from app.models.gateways import Gateway
 from app.models.organizations import Organization
@@ -50,8 +52,6 @@ from app.services.openclaw.constants import (
     OFFLINE_AFTER,
 )
 from app.services.openclaw.db_agent_state import (
-    mark_provision_complete,
-    mark_provision_requested,
     mint_agent_token,
 )
 from app.services.openclaw.db_service import OpenClawDBService
@@ -72,6 +72,7 @@ from app.services.openclaw.internal.session_keys import (
     board_agent_session_key,
     board_lead_session_key,
 )
+from app.services.openclaw.lifecycle_orchestrator import AgentLifecycleOrchestrator
 from app.services.openclaw.policies import OpenClawAuthorizationPolicy
 from app.services.openclaw.provisioning import (
     OpenClawGatewayControlPlane,
@@ -108,9 +109,11 @@ class GatewayTemplateSyncOptions:
 
     user: User | None
     include_main: bool = True
+    lead_only: bool = False
     reset_sessions: bool = False
     rotate_tokens: bool = False
     force_bootstrap: bool = False
+    overwrite: bool = False
     board_id: UUID | None = None
 
 
@@ -139,7 +142,6 @@ class OpenClawProvisioningService(OpenClawDBService):
 
     def __init__(self, session: AsyncSession) -> None:
         super().__init__(session)
-        self._gateway = OpenClawGatewayProvisioner()
 
     @staticmethod
     def lead_session_key(board: Board) -> str:
@@ -209,25 +211,25 @@ class OpenClawProvisioningService(OpenClawDBService):
             openclaw_session_id=self.lead_session_key(board),
         )
         raw_token = mint_agent_token(agent)
-        mark_provision_requested(agent, action=config_options.action, status="provisioning")
         await self.add_commit_refresh(agent)
 
         # Strict behavior: provisioning errors surface to the caller. The DB row exists
         # so a later retry can succeed with the same deterministic identity/session key.
-        await self._gateway.apply_agent_lifecycle(
-            agent=agent,
+        agent = await AgentLifecycleOrchestrator(self.session).run_lifecycle(
             gateway=request.gateway,
+            agent_id=agent.id,
             board=board,
-            auth_token=raw_token,
             user=request.user,
             action=config_options.action,
+            auth_token=raw_token,
+            force_bootstrap=False,
+            reset_session=False,
             wake=True,
             deliver_wakeup=True,
+            wakeup_verb=None,
+            clear_confirm_token=False,
+            raise_gateway_errors=True,
         )
-
-        mark_provision_complete(agent, status="online")
-        await self.add_commit_refresh(agent)
-
         return agent, True
 
     async def sync_gateway_templates(
@@ -245,11 +247,28 @@ class OpenClawProvisioningService(OpenClawDBService):
             options = GatewayTemplateSyncOptions(
                 user=template_user,
                 include_main=options.include_main,
+                lead_only=options.lead_only,
                 reset_sessions=options.reset_sessions,
                 rotate_tokens=options.rotate_tokens,
                 force_bootstrap=options.force_bootstrap,
+                overwrite=options.overwrite,
                 board_id=options.board_id,
             )
+
+        if template_user is None:
+            result = _base_result(
+                gateway,
+                include_main=options.include_main,
+                reset_sessions=options.reset_sessions,
+            )
+            _append_sync_error(
+                result,
+                message=(
+                    "Organization owner not found (required for gateway template USER.md "
+                    "rendering)."
+                ),
+            )
+            return result
 
         result = _base_result(
             gateway,
@@ -264,7 +283,12 @@ class OpenClawProvisioningService(OpenClawDBService):
             return result
 
         control_plane = OpenClawGatewayControlPlane(
-            GatewayClientConfig(url=gateway.url, token=gateway.token),
+            GatewayClientConfig(
+                url=gateway.url,
+                token=gateway.token,
+                allow_insecure_tls=gateway.allow_insecure_tls,
+                disable_device_pairing=gateway.disable_device_pairing,
+            ),
         )
         ctx = _SyncContext(
             session=self.session,
@@ -272,7 +296,6 @@ class OpenClawProvisioningService(OpenClawDBService):
             control_plane=control_plane,
             backoff=GatewayBackoff(timeout_s=10 * 60, timeout_context="template sync"),
             options=options,
-            provisioner=self._gateway,
         )
         if not await _ping_gateway(ctx, result):
             return result
@@ -287,11 +310,12 @@ class OpenClawProvisioningService(OpenClawDBService):
             return result
         paused_board_ids = await _paused_board_ids(self.session, list(boards_by_id.keys()))
         if boards_by_id:
-            agents = await (
-                Agent.objects.by_field_in("board_id", list(boards_by_id.keys()))
-                .order_by(col(Agent.created_at).asc())
-                .all(self.session)
+            query = Agent.objects.by_field_in("board_id", list(boards_by_id.keys())).order_by(
+                col(Agent.created_at).asc(),
             )
+            if options.lead_only:
+                query = query.filter(col(Agent.is_board_lead).is_(True))
+            agents = await query.all(self.session)
         else:
             agents = []
 
@@ -325,7 +349,6 @@ class _SyncContext:
     control_plane: OpenClawGatewayControlPlane
     backoff: GatewayBackoff
     options: GatewayTemplateSyncOptions
-    provisioner: OpenClawGatewayProvisioner
 
 
 def _parse_tools_md(content: str) -> dict[str, str]:
@@ -557,17 +580,26 @@ async def _sync_one_agent(
     try:
 
         async def _do_provision() -> bool:
-            await ctx.provisioner.apply_agent_lifecycle(
-                agent=agent,
-                gateway=ctx.gateway,
-                board=board,
-                auth_token=auth_token,
-                user=ctx.options.user,
-                action="update",
-                force_bootstrap=ctx.options.force_bootstrap,
-                reset_session=ctx.options.reset_sessions,
-                wake=False,
-            )
+            try:
+                await AgentLifecycleOrchestrator(ctx.session).run_lifecycle(
+                    gateway=ctx.gateway,
+                    agent_id=agent.id,
+                    board=board,
+                    user=ctx.options.user,
+                    action="update",
+                    auth_token=auth_token,
+                    force_bootstrap=ctx.options.force_bootstrap,
+                    reset_session=ctx.options.reset_sessions,
+                    wake=False,
+                    deliver_wakeup=False,
+                    wakeup_verb="updated",
+                    clear_confirm_token=False,
+                    raise_gateway_errors=True,
+                )
+            except HTTPException as exc:
+                if exc.status_code == status.HTTP_502_BAD_GATEWAY:
+                    raise OpenClawGatewayError(str(exc.detail)) from exc
+                raise
             return True
 
         await ctx.backoff.run(_do_provision)
@@ -583,6 +615,15 @@ async def _sync_one_agent(
             agent=agent,
             board=board,
             message=f"Failed to sync templates: {exc}",
+        )
+        return False
+    except HTTPException as exc:
+        result.agents_skipped += 1
+        _append_sync_error(
+            result,
+            agent=agent,
+            board=board,
+            message=f"Failed to sync templates: {exc.detail}",
         )
         return False
     else:
@@ -627,17 +668,26 @@ async def _sync_main_agent(
     try:
 
         async def _do_provision_main() -> bool:
-            await ctx.provisioner.apply_agent_lifecycle(
-                agent=main_agent,
-                gateway=ctx.gateway,
-                board=None,
-                auth_token=token,
-                user=ctx.options.user,
-                action="update",
-                force_bootstrap=ctx.options.force_bootstrap,
-                reset_session=ctx.options.reset_sessions,
-                wake=False,
-            )
+            try:
+                await AgentLifecycleOrchestrator(ctx.session).run_lifecycle(
+                    gateway=ctx.gateway,
+                    agent_id=main_agent.id,
+                    board=None,
+                    user=ctx.options.user,
+                    action="update",
+                    auth_token=token,
+                    force_bootstrap=ctx.options.force_bootstrap,
+                    reset_session=ctx.options.reset_sessions,
+                    wake=False,
+                    deliver_wakeup=False,
+                    wakeup_verb="updated",
+                    clear_confirm_token=False,
+                    raise_gateway_errors=True,
+                )
+            except HTTPException as exc:
+                if exc.status_code == status.HTTP_502_BAD_GATEWAY:
+                    raise OpenClawGatewayError(str(exc.detail)) from exc
+                raise
             return True
 
         await ctx.backoff.run(_do_provision_main)
@@ -649,6 +699,12 @@ async def _sync_main_agent(
             result,
             agent=main_agent,
             message=f"Failed to sync gateway agent templates: {exc}",
+        )
+    except HTTPException as exc:
+        _append_sync_error(
+            result,
+            agent=main_agent,
+            message=f"Failed to sync gateway agent templates: {exc.detail}",
         )
     else:
         result.main_updated = True
@@ -732,7 +788,7 @@ class AgentLifecycleService(OpenClawDBService):
             if existing:
                 return existing
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Gateway main agent session key is required",
             )
         if agent.is_board_lead:
@@ -743,7 +799,7 @@ class AgentLifecycleService(OpenClawDBService):
     def workspace_path(cls, agent_name: str, workspace_root: str | None) -> str:
         if not workspace_root:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Gateway workspace_root is required",
             )
         root = workspace_root.rstrip("/")
@@ -758,7 +814,7 @@ class AgentLifecycleService(OpenClawDBService):
     ) -> Board:
         if not board_id:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="board_id is required",
             )
         board = await Board.objects.by_id(board_id).first(self.session)
@@ -922,6 +978,49 @@ class AgentLifecycleService(OpenClawDBService):
 
         return payload
 
+    async def count_non_lead_agents_for_board(
+        self,
+        *,
+        board_id: UUID,
+    ) -> int:
+        """Count board-scoped non-lead agents for spawn limit checks."""
+        statement = (
+            select(func.count(col(Agent.id)))
+            .where(col(Agent.board_id) == board_id)
+            .where(col(Agent.is_board_lead).is_(False))
+        )
+        count = (await self.session.exec(statement)).one()
+        return int(count or 0)
+
+    async def enforce_board_spawn_limit_for_lead(
+        self,
+        *,
+        board: Board,
+        actor: ActorContextLike,
+    ) -> None:
+        """Enforce `board.max_agents` when creation is requested by a lead agent.
+
+        The cap excludes the board lead itself.
+        """
+        if actor.actor_type != "agent":
+            return
+        if actor.agent is None or not actor.agent.is_board_lead:
+            return
+
+        worker_count = await self.count_non_lead_agents_for_board(board_id=board.id)
+        if worker_count < board.max_agents:
+            return
+
+        noun = "agent" if board.max_agents == 1 else "agents"
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Board worker-agent limit reached: "
+                f"max_agents={board.max_agents} (excluding the lead); "
+                f"cannot create more than {board.max_agents} {noun}."
+            ),
+        )
+
     async def ensure_unique_agent_name(
         self,
         *,
@@ -966,7 +1065,6 @@ class AgentLifecycleService(OpenClawDBService):
     ) -> tuple[Agent, str]:
         agent = Agent.model_validate(data)
         raw_token = mint_agent_token(agent)
-        mark_provision_requested(agent, action="provision", status="provisioning")
         agent.openclaw_session_id = self.resolve_session_key(agent)
         await self.add_commit_refresh(agent)
         return agent, raw_token
@@ -996,92 +1094,63 @@ class AgentLifecycleService(OpenClawDBService):
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="board is required for non-main agent provisioning",
                 )
-            template_user = user
-            if target.is_main_agent and template_user is None:
-                template_user = await get_org_owner_user(
-                    self.session,
-                    organization_id=target.gateway.organization_id,
-                )
-                if template_user is None:
-                    raise HTTPException(
-                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                        detail=(
-                            "User context is required to provision the gateway main agent "
-                            "(org owner not found)."
-                        ),
-                    )
-            await OpenClawGatewayProvisioner().apply_agent_lifecycle(
-                agent=agent,
+            provisioned = await AgentLifecycleOrchestrator(self.session).run_lifecycle(
                 gateway=target.gateway,
+                agent_id=agent.id,
                 board=target.board if not target.is_main_agent else None,
-                auth_token=auth_token,
-                user=template_user,
+                user=user,
                 action=action,
+                auth_token=auth_token,
                 force_bootstrap=force_bootstrap,
                 reset_session=True,
                 wake=True,
                 deliver_wakeup=True,
                 wakeup_verb=wakeup_verb,
+                clear_confirm_token=True,
+                raise_gateway_errors=raise_gateway_errors,
             )
-            mark_provision_complete(agent, status="online", clear_confirm_token=True)
-            self.session.add(agent)
-            await self.session.commit()
             record_activity(
                 self.session,
                 event_type=f"agent.{action}.direct",
-                message=f"{action.capitalize()}d directly for {agent.name}.",
-                agent_id=agent.id,
+                message=f"{action.capitalize()}d directly for {provisioned.name}.",
+                agent_id=provisioned.id,
             )
             record_activity(
                 self.session,
                 event_type="agent.wakeup.sent",
-                message=f"Wakeup message sent to {agent.name}.",
-                agent_id=agent.id,
+                message=f"Wakeup message sent to {provisioned.name}.",
+                agent_id=provisioned.id,
             )
             await self.session.commit()
             self.logger.info(
                 "agent.provision.success action=%s agent_id=%s",
                 action,
-                agent.id,
+                provisioned.id,
             )
-        except OpenClawGatewayError as exc:
+        except HTTPException as exc:
             self.record_instruction_failure(
                 self.session,
                 agent,
-                str(exc),
+                str(exc.detail),
                 action,
             )
             await self.session.commit()
-            self.logger.error(
-                "agent.provision.gateway_error action=%s agent_id=%s error=%s",
-                action,
-                agent.id,
-                str(exc),
-            )
+            if exc.status_code == status.HTTP_502_BAD_GATEWAY:
+                self.logger.error(
+                    "agent.provision.gateway_error action=%s agent_id=%s error=%s",
+                    action,
+                    agent.id,
+                    str(exc.detail),
+                )
+            else:
+                self.logger.critical(
+                    "agent.provision.runtime_error action=%s agent_id=%s error=%s",
+                    action,
+                    agent.id,
+                    str(exc.detail),
+                )
             if raise_gateway_errors:
-                raise HTTPException(
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail=f"Gateway {action} failed: {exc}",
-                ) from exc
-        except (OSError, RuntimeError, ValueError) as exc:  # pragma: no cover
-            self.record_instruction_failure(
-                self.session,
-                agent,
-                str(exc),
-                action,
-            )
-            await self.session.commit()
-            self.logger.critical(
-                "agent.provision.runtime_error action=%s agent_id=%s error=%s",
-                action,
-                agent.id,
-                str(exc),
-            )
-            if raise_gateway_errors:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Unexpected error {action}ing agent provisioning.",
-                ) from exc
+                raise
 
     async def provision_new_agent(
         self,
@@ -1154,7 +1223,7 @@ class AgentLifecycleService(OpenClawDBService):
         elif make_main is not None:
             if "board_id" not in updates or updates["board_id"] is None:
                 raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail=(
                         "board_id is required when converting a gateway-main agent "
                         "to board scope"
@@ -1163,7 +1232,7 @@ class AgentLifecycleService(OpenClawDBService):
             board = await self.require_board(updates["board_id"])
             if board.gateway_id is None:
                 raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail="Board gateway_id is required",
                 )
             updates["gateway_id"] = board.gateway_id
@@ -1173,7 +1242,7 @@ class AgentLifecycleService(OpenClawDBService):
             board = await self.require_board(updates["board_id"])
             if board.gateway_id is None:
                 raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail="Board gateway_id is required",
                 )
             updates["gateway_id"] = board.gateway_id
@@ -1188,7 +1257,7 @@ class AgentLifecycleService(OpenClawDBService):
             board = await self.require_board(agent.board_id)
             if board.gateway_id is None:
                 raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail="Board gateway_id is required",
                 )
             agent.gateway_id = board.gateway_id
@@ -1211,7 +1280,7 @@ class AgentLifecycleService(OpenClawDBService):
         if make_main:
             if gateway_for_main is None:
                 raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail="Gateway agent requires a gateway configuration",
                 )
             return AgentUpdateProvisionTarget(
@@ -1229,7 +1298,7 @@ class AgentLifecycleService(OpenClawDBService):
 
         if agent.board_id is None:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="board_id is required for non-main agents",
             )
         board = await self.require_board(agent.board_id)
@@ -1243,7 +1312,6 @@ class AgentLifecycleService(OpenClawDBService):
     @staticmethod
     def mark_agent_update_pending(agent: Agent) -> str:
         raw_token = mint_agent_token(agent)
-        mark_provision_requested(agent, action="update", status="updating")
         return raw_token
 
     async def provision_updated_agent(
@@ -1318,7 +1386,6 @@ class AgentLifecycleService(OpenClawDBService):
             return
 
         raw_token = mint_agent_token(agent)
-        mark_provision_requested(agent, action="provision", status="provisioning")
         await self.add_commit_refresh(agent)
         board = await self.require_board(
             str(agent.board_id) if agent.board_id else None,
@@ -1364,6 +1431,10 @@ class AgentLifecycleService(OpenClawDBService):
         elif agent.status == "provisioning":
             agent.status = "online"
         agent.last_seen_at = utcnow()
+        # Successful check-in ends the current wake escalation cycle.
+        agent.wake_attempts = 0
+        agent.checkin_deadline_at = None
+        agent.last_provision_error = None
         agent.updated_at = utcnow()
         self.record_heartbeat(self.session, agent)
         self.session.add(agent)
@@ -1484,6 +1555,7 @@ class AgentLifecycleService(OpenClawDBService):
             user=actor.user if actor.actor_type == "user" else None,
             write=actor.actor_type == "user",
         )
+        await self.enforce_board_spawn_limit_for_lead(board=board, actor=actor)
         gateway, _client_config = await self.require_gateway(board)
         data = payload.model_dump()
         data["gateway_id"] = gateway.id
@@ -1773,6 +1845,21 @@ class AgentLifecycleService(OpenClawDBService):
             ActivityEvent,
             col(ActivityEvent.agent_id) == agent.id,
             agent_id=None,
+            commit=False,
+        )
+        await crud.update_where(
+            self.session,
+            Approval,
+            col(Approval.agent_id) == agent.id,
+            agent_id=None,
+            commit=False,
+        )
+        await crud.update_where(
+            self.session,
+            BoardWebhook,
+            col(BoardWebhook.agent_id) == agent.id,
+            agent_id=None,
+            updated_at=now,
             commit=False,
         )
         await self.session.delete(agent)

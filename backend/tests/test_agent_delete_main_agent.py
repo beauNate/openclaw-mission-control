@@ -10,6 +10,7 @@ from uuid import UUID, uuid4
 import pytest
 
 import app.services.openclaw.provisioning_db as agent_service
+from app.models.approvals import Approval
 
 
 @dataclass
@@ -42,6 +43,8 @@ class _GatewayStub:
     url: str
     token: str | None
     workspace_root: str
+    allow_insecure_tls: bool = False
+    disable_device_pairing: bool = False
 
 
 @pytest.mark.asyncio
@@ -106,7 +109,11 @@ async def test_delete_gateway_main_agent_does_not_require_board_id(
         called["delete_lifecycle"] += 1
         return "/tmp/openclaw/workspace-gateway-x"
 
+    updated_models: list[type[object]] = []
+
     async def _fake_update_where(*_args, **_kwargs) -> None:
+        if len(_args) >= 2 and isinstance(_args[1], type):
+            updated_models.append(_args[1])
         return None
 
     monkeypatch.setattr(service, "require_agent_access", _no_access_check)
@@ -124,4 +131,5 @@ async def test_delete_gateway_main_agent_does_not_require_board_id(
 
     assert result.ok is True
     assert called["delete_lifecycle"] == 1
+    assert Approval in updated_models
     assert session.deleted and session.deleted[0] == agent

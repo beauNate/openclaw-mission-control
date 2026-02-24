@@ -28,11 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  DEFAULT_IDENTITY_PROFILE,
-  DEFAULT_SOUL_TEMPLATE,
-} from "@/lib/agent-templates";
+import { DEFAULT_IDENTITY_PROFILE } from "@/lib/agent-templates";
 
 type IdentityProfile = {
   role: string;
@@ -51,11 +47,6 @@ const EMOJI_OPTIONS = [
   { value: ":shield:", label: "Shield", glyph: "🛡️" },
   { value: ":memo:", label: "Notes", glyph: "📝" },
   { value: ":brain:", label: "Brain", glyph: "🧠" },
-];
-
-const HEARTBEAT_TARGET_OPTIONS: SearchableSelectOption[] = [
-  { value: "none", label: "None (no outbound message)" },
-  { value: "last", label: "Last channel" },
 ];
 
 const getBoardOptions = (boards: BoardRead[]): SearchableSelectOption[] =>
@@ -85,11 +76,9 @@ export default function NewAgentPage() {
   const [name, setName] = useState("");
   const [boardId, setBoardId] = useState<string>("");
   const [heartbeatEvery, setHeartbeatEvery] = useState("10m");
-  const [heartbeatTarget, setHeartbeatTarget] = useState("none");
   const [identityProfile, setIdentityProfile] = useState<IdentityProfile>({
     ...DEFAULT_IDENTITY_PROFILE,
   });
-  const [soulTemplate, setSoulTemplate] = useState(DEFAULT_SOUL_TEMPLATE);
   const [error, setError] = useState<string | null>(null);
 
   const boardsQuery = useListBoardsApiV1BoardsGet<
@@ -141,13 +130,12 @@ export default function NewAgentPage() {
         board_id: resolvedBoardId,
         heartbeat_config: {
           every: heartbeatEvery.trim() || "10m",
-          target: heartbeatTarget,
+          target: "last",
           includeReasoning: false,
         },
         identity_profile: normalizeIdentityProfile(
           identityProfile,
         ) as unknown as Record<string, unknown> | null,
-        soul_template: soulTemplate.trim() || null,
       },
     });
   };
@@ -260,7 +248,7 @@ export default function NewAgentPage() {
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             Personality & behavior
           </p>
-          <div className="mt-4 space-y-6">
+          <div className="mt-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-900">
                 Communication style
@@ -276,17 +264,6 @@ export default function NewAgentPage() {
                 disabled={isLoading}
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-900">
-                Soul template
-              </label>
-              <Textarea
-                value={soulTemplate}
-                onChange={(event) => setSoulTemplate(event.target.value)}
-                rows={10}
-                disabled={isLoading}
-              />
-            </div>
           </div>
         </div>
 
@@ -294,7 +271,7 @@ export default function NewAgentPage() {
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             Schedule & notifications
           </p>
-          <div className="mt-4 grid gap-6 md:grid-cols-2">
+          <div className="mt-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-900">
                 Interval
@@ -308,24 +285,6 @@ export default function NewAgentPage() {
               <p className="text-xs text-slate-500">
                 How often this agent runs HEARTBEAT.md (10m, 30m, 2h).
               </p>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-900">
-                Target
-              </label>
-              <SearchableSelect
-                ariaLabel="Select heartbeat target"
-                value={heartbeatTarget}
-                onValueChange={setHeartbeatTarget}
-                options={HEARTBEAT_TARGET_OPTIONS}
-                placeholder="Select target"
-                searchPlaceholder="Search targets..."
-                emptyMessage="No matching targets."
-                triggerClassName="w-full h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                contentClassName="rounded-xl border border-slate-200 shadow-lg"
-                itemClassName="px-4 py-3 text-sm text-slate-700 data-[selected=true]:bg-slate-50 data-[selected=true]:text-slate-900"
-                disabled={isLoading}
-              />
             </div>
           </div>
         </div>

@@ -139,6 +139,7 @@ const SSE_RECONNECT_BACKOFF = {
   jitter: 0.2,
   maxMs: 5 * 60_000,
 } as const;
+const HAS_ALL_MENTION_RE = /(^|\s)@all\b/i;
 
 type HeartbeatUnit = "s" | "m" | "h" | "d";
 
@@ -230,6 +231,17 @@ export default function BoardGroupDetailPage() {
       }
     });
     return ids;
+  }, [boards]);
+  const groupMentionSuggestions = useMemo(() => {
+    const options = new Set<string>(["lead", "all"]);
+    boards.forEach((item) => {
+      (item.tasks ?? []).forEach((task) => {
+        if (task.assignee) {
+          options.add(task.assignee);
+        }
+      });
+    });
+    return [...options];
   }, [boards]);
 
   const membershipQuery = useGetMyMembershipApiV1OrganizationsMeMemberGet<
@@ -327,6 +339,12 @@ export default function BoardGroupDetailPage() {
     [],
   );
 
+  /**
+   * Computes the newest `created_at` timestamp in a list of memory items.
+   *
+   * We pass this as `since` when reconnecting SSE so we don't re-stream the
+   * entire chat history after transient disconnects.
+   */
   const latestMemoryTimestamp = useCallback((items: BoardGroupMemoryRead[]) => {
     if (!items.length) return undefined;
     const latest = items.reduce((max, item) => {
@@ -393,11 +411,13 @@ export default function BoardGroupDetailPage() {
         while (!isCancelled) {
           const { value, done } = await reader.read();
           if (done) break;
+
+          // Consider the stream healthy once we receive any bytes (including pings)
+          // and reset the backoff so a later disconnect doesn't wait the full max.
           if (value && value.length) {
-            // Consider the stream healthy once we receive any bytes (including pings),
-            // then reset the backoff for future reconnects.
             backoff.reset();
           }
+
           buffer += decoder.decode(value, { stream: true });
           buffer = buffer.replace(/\r\n/g, "\n");
           let boundary = buffer.indexOf("\n\n");
@@ -599,7 +619,9 @@ export default function BoardGroupDetailPage() {
       setIsChatSending(true);
       setChatError(null);
       try {
-        const tags = ["chat", ...(chatBroadcast ? ["broadcast"] : [])];
+        const shouldBroadcast =
+          chatBroadcast || HAS_ALL_MENTION_RE.test(trimmed);
+        const tags = ["chat", ...(shouldBroadcast ? ["broadcast"] : [])];
         const result =
           await createBoardGroupMemoryApiV1BoardGroupsGroupIdMemoryPost(
             groupId,
@@ -641,7 +663,9 @@ export default function BoardGroupDetailPage() {
       setIsNoteSending(true);
       setNoteSendError(null);
       try {
-        const tags = ["note", ...(notesBroadcast ? ["broadcast"] : [])];
+        const shouldBroadcast =
+          notesBroadcast || HAS_ALL_MENTION_RE.test(trimmed);
+        const tags = ["note", ...(shouldBroadcast ? ["broadcast"] : [])];
         const result =
           await createBoardGroupMemoryApiV1BoardGroupsGroupIdMemoryPost(
             groupId,
@@ -1156,6 +1180,7 @@ export default function BoardGroupDetailPage() {
               isSending={isChatSending}
               onSend={sendGroupChat}
               disabled={!canWriteGroup}
+              mentionSuggestions={groupMentionSuggestions}
             />
           </div>
         </div>
@@ -1242,6 +1267,7 @@ export default function BoardGroupDetailPage() {
               isSending={isNoteSending}
               onSend={sendGroupNote}
               disabled={!canWriteGroup}
+              mentionSuggestions={groupMentionSuggestions}
             />
           </div>
         </div>

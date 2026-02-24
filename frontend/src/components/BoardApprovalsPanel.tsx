@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import Link from "next/link";
 
 import { useAuth } from "@/auth/clerk";
 import { useQueryClient } from "@tanstack/react-query";
@@ -28,9 +29,16 @@ import { apiDatetimeToMs, parseApiDatetime } from "@/lib/datetime";
 import { cn } from "@/lib/utils";
 
 type Approval = ApprovalRead & { status: string };
+
+const normalizeScore = (value: unknown): number => {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+  return value;
+};
+
 const normalizeApproval = (approval: ApprovalRead): Approval => ({
   ...approval,
   status: approval.status ?? "pending",
+  confidence: normalizeScore(approval.confidence),
 });
 
 type BoardApprovalsPanelProps = {
@@ -140,9 +148,15 @@ const formatRubricTooltipValue = (
   );
 };
 
+/**
+ * Narrow unknown values to a plain record.
+ *
+ * Used for defensive parsing of `approval.payload` (schema can evolve).
+ */
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+/** Safely read any value at a nested path inside an approval payload. */
 const payloadAtPath = (payload: Approval["payload"], path: string[]) => {
   let current: unknown = payload;
   for (const key of path) {
@@ -152,6 +166,12 @@ const payloadAtPath = (payload: Approval["payload"], path: string[]) => {
   return current ?? null;
 };
 
+/**
+ * Safely read a simple scalar value from an approval payload.
+ *
+ * The backend payload shape can evolve (camelCase vs snake_case). Keeping these
+ * helpers centralized makes it easier to support older approvals.
+ */
 const payloadValue = (payload: Approval["payload"], key: string) => {
   const value = payloadAtPath(payload, [key]);
   if (typeof value === "string" || typeof value === "number") {
@@ -160,12 +180,18 @@ const payloadValue = (payload: Approval["payload"], key: string) => {
   return null;
 };
 
+/**
+ * Safely read a string[] value from an approval payload.
+ *
+ * Filters non-string entries to keep UI rendering predictable.
+ */
 const payloadValues = (payload: Approval["payload"], key: string) => {
   const value = payloadAtPath(payload, [key]);
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === "string");
 };
 
+/** Safely read a scalar value from an approval payload at a nested path. */
 const payloadNestedValue = (payload: Approval["payload"], path: string[]) => {
   const value = payloadAtPath(payload, path);
   if (typeof value === "string" || typeof value === "number") {
@@ -174,6 +200,7 @@ const payloadNestedValue = (payload: Approval["payload"], path: string[]) => {
   return null;
 };
 
+/** Safely read a string[] value from an approval payload at a nested path. */
 const payloadNestedValues = (payload: Approval["payload"], path: string[]) => {
   const value = payloadAtPath(payload, path);
   if (!Array.isArray(value)) return [];
@@ -214,6 +241,15 @@ const normalizeRubricScores = (raw: unknown): Record<string, number> => {
 const payloadRubricScores = (payload: Approval["payload"]) =>
   normalizeRubricScores(payloadAtPath(payload, ["analytics", "rubric_scores"]));
 
+/**
+ * Extract task ids referenced by an approval.
+ *
+ * Approvals can reference tasks in multiple places depending on the producer:
+ * - top-level `task_id` / `task_ids` fields
+ * - nested payload keys (task_id/taskId/taskIDs, etc.)
+ *
+ * We merge/dedupe to get a best-effort list for UI deep links.
+ */
 const approvalTaskIds = (approval: Approval) => {
   const payload = approval.payload ?? {};
   const linkedTaskIds = (approval as Approval & { task_ids?: string[] | null })
@@ -237,6 +273,85 @@ const approvalTaskIds = (approval: Approval) => {
   return [...new Set(merged)];
 };
 
+type RelatedTaskSummary = {
+  id: string;
+  title: string;
+};
+
+const approvalRelatedTasks = (approval: Approval): RelatedTaskSummary[] => {
+  const payload = approval.payload ?? {};
+  const taskIds = approvalTaskIds(approval);
+  if (taskIds.length === 0) return [];
+  const apiTaskTitles = (
+    approval as Approval & { task_titles?: string[] | null }
+  ).task_titles;
+
+  const titleByTaskId = new Map<string, string>();
+  const orderedTitles: string[] = [];
+
+  const collectTaskTitles = (path: string[]) => {
+    const tasks = payloadAtPath(payload, path);
+    if (!Array.isArray(tasks)) return;
+    for (const task of tasks) {
+      if (!isRecord(task)) continue;
+      const rawTitle = task["title"];
+      const title = typeof rawTitle === "string" ? rawTitle.trim() : "";
+      if (!title) continue;
+      orderedTitles.push(title);
+      const taskId =
+        typeof task["task_id"] === "string"
+          ? task["task_id"]
+          : typeof task["taskId"] === "string"
+            ? task["taskId"]
+            : typeof task["id"] === "string"
+              ? task["id"]
+              : null;
+      if (taskId && taskId.trim()) {
+        titleByTaskId.set(taskId, title);
+      }
+    }
+  };
+
+  collectTaskTitles(["linked_request", "tasks"]);
+  collectTaskTitles(["linkedRequest", "tasks"]);
+
+  const indexedTitles = [
+    ...(Array.isArray(apiTaskTitles) ? apiTaskTitles : []),
+    ...orderedTitles,
+    ...payloadValues(payload, "task_titles"),
+    ...payloadValues(payload, "taskTitles"),
+    ...payloadNestedValues(payload, ["linked_request", "task_titles"]),
+    ...payloadNestedValues(payload, ["linked_request", "taskTitles"]),
+    ...payloadNestedValues(payload, ["linkedRequest", "task_titles"]),
+    ...payloadNestedValues(payload, ["linkedRequest", "taskTitles"]),
+  ]
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+
+  const singleTitle =
+    payloadValue(payload, "title") ??
+    payloadNestedValue(payload, ["task", "title"]) ??
+    payloadFirstLinkedTaskValue(payload, "title");
+
+  return taskIds.map((taskId, index) => {
+    const resolvedTitle =
+      titleByTaskId.get(taskId) ??
+      indexedTitles[index] ??
+      (taskIds.length === 1 ? singleTitle : null) ??
+      "Untitled task";
+    return { id: taskId, title: resolvedTitle };
+  });
+};
+
+const taskHref = (boardId: string, taskId: string) =>
+  `/boards/${encodeURIComponent(boardId)}?taskId=${encodeURIComponent(taskId)}`;
+
+/**
+ * Create a small, human-readable summary of an approval request.
+ *
+ * Used by the approvals panel modal: it prefers explicit fields but falls back
+ * to payload-derived values so older approvals still render well.
+ */
 const approvalSummary = (approval: Approval, boardLabel?: string | null) => {
   const payload = approval.payload ?? {};
   const taskIds = approvalTaskIds(approval);
@@ -544,6 +659,9 @@ export function BoardApprovalsPanel({
                       </p>
                     ) : null}
                     <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                      <span className="rounded bg-slate-100 px-1.5 py-0.5 font-semibold text-slate-700">
+                        {approval.confidence}% score
+                      </span>
                       <Clock className="h-3.5 w-3.5 opacity-60" />
                       <span>{formatTimestamp(approval.created_at)}</span>
                     </div>
@@ -582,10 +700,12 @@ export function BoardApprovalsPanel({
                 const titleText = titleRow?.value?.trim() ?? "";
                 const descriptionText = summary.description?.trim() ?? "";
                 const reasoningText = summary.reason?.trim() ?? "";
+                const relatedTasks = approvalRelatedTasks(selectedApproval);
                 const extraRows = summary.rows.filter((row) => {
                   const normalized = row.label.toLowerCase();
                   if (normalized === "title") return false;
                   if (normalized === "task") return false;
+                  if (normalized === "tasks") return false;
                   if (normalized === "assignee") return false;
                   return true;
                 });
@@ -729,6 +849,28 @@ export function BoardApprovalsPanel({
                         </p>
                         <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
                           <p>{reasoningText}</p>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {relatedTasks.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                          Related tasks
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {relatedTasks.map((task) => (
+                            <Link
+                              key={`${selectedApproval.id}-task-${task.id}`}
+                              href={taskHref(
+                                selectedApproval.board_id,
+                                task.id,
+                              )}
+                              className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 underline-offset-2 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 hover:underline"
+                            >
+                              {task.title}
+                            </Link>
+                          ))}
                         </div>
                       </div>
                     ) : null}

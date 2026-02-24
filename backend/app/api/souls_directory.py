@@ -25,7 +25,7 @@ def _validate_segment(value: str, *, field: str) -> str:
     cleaned = value.strip().strip("/")
     if not cleaned:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"{field} is required",
         )
     if field == "handle":
@@ -34,7 +34,7 @@ def _validate_segment(value: str, *, field: str) -> str:
         ok = bool(_SAFE_SLUG_RE.match(cleaned))
     if not ok:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"{field} contains unsupported characters",
         )
     return cleaned

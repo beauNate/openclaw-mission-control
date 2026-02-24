@@ -13,11 +13,16 @@ _GATEWAY_AGENT_SUFFIX = ":main"
 
 DEFAULT_HEARTBEAT_CONFIG: dict[str, Any] = {
     "every": "10m",
-    "target": "none",
+    "target": "last",
     "includeReasoning": False,
 }
 
 OFFLINE_AFTER = timedelta(minutes=10)
+# Provisioning convergence policy:
+# - require first heartbeat/check-in within 30s of wake
+# - allow up to 3 wake attempts before giving up
+CHECKIN_DEADLINE_AFTER_WAKE = timedelta(seconds=30)
+MAX_WAKE_ATTEMPTS_WITHOUT_CHECKIN = 3
 AGENT_SESSION_PREFIX = "agent"
 
 DEFAULT_CHANNEL_HEARTBEAT_VISIBILITY: dict[str, bool] = {
@@ -55,16 +60,26 @@ DEFAULT_GATEWAY_FILES = frozenset(
     {
         "AGENTS.md",
         "SOUL.md",
-        "TASK_SOUL.md",
-        "SELF.md",
-        "AUTONOMY.md",
         "TOOLS.md",
         "IDENTITY.md",
         "USER.md",
         "HEARTBEAT.md",
-        "BOOT.md",
-        "BOOTSTRAP.md",
         "MEMORY.md",
+    },
+)
+
+# Lead-only workspace contract. Used for board leads to allow an iterative rollout
+# without changing worker templates.
+LEAD_GATEWAY_FILES = frozenset(
+    {
+        "AGENTS.md",
+        "BOOTSTRAP.md",
+        "IDENTITY.md",
+        "SOUL.md",
+        "USER.md",
+        "MEMORY.md",
+        "TOOLS.md",
+        "HEARTBEAT.md",
     },
 )
 
@@ -72,23 +87,37 @@ DEFAULT_GATEWAY_FILES = frozenset(
 # Provision them if missing, but avoid overwriting existing content during updates.
 #
 # Examples:
-# - SELF.md: evolving identity/preferences
 # - USER.md: human-provided context + lead intake notes
 # - MEMORY.md: curated long-term memory (consolidated)
-PRESERVE_AGENT_EDITABLE_FILES = frozenset({"SELF.md", "USER.md", "MEMORY.md", "TASK_SOUL.md"})
+PRESERVE_AGENT_EDITABLE_FILES = frozenset({"USER.md", "MEMORY.md"})
 
-HEARTBEAT_LEAD_TEMPLATE = "HEARTBEAT_LEAD.md"
-HEARTBEAT_AGENT_TEMPLATE = "HEARTBEAT_AGENT.md"
+HEARTBEAT_LEAD_TEMPLATE = "BOARD_HEARTBEAT.md.j2"
+HEARTBEAT_AGENT_TEMPLATE = "BOARD_HEARTBEAT.md.j2"
 SESSION_KEY_PARTS_MIN = 2
 _SESSION_KEY_PARTS_MIN = SESSION_KEY_PARTS_MIN
 
 MAIN_TEMPLATE_MAP = {
-    "AGENTS.md": "MAIN_AGENTS.md",
-    "HEARTBEAT.md": "MAIN_HEARTBEAT.md",
-    "USER.md": "MAIN_USER.md",
-    "BOOT.md": "MAIN_BOOT.md",
-    "TOOLS.md": "MAIN_TOOLS.md",
+    "AGENTS.md": "BOARD_AGENTS.md.j2",
+    "IDENTITY.md": "BOARD_IDENTITY.md.j2",
+    "SOUL.md": "BOARD_SOUL.md.j2",
+    "MEMORY.md": "BOARD_MEMORY.md.j2",
+    "HEARTBEAT.md": "BOARD_HEARTBEAT.md.j2",
+    "USER.md": "BOARD_USER.md.j2",
+    "TOOLS.md": "BOARD_TOOLS.md.j2",
 }
+
+BOARD_SHARED_TEMPLATE_MAP = {
+    "AGENTS.md": "BOARD_AGENTS.md.j2",
+    "BOOTSTRAP.md": "BOARD_BOOTSTRAP.md.j2",
+    "IDENTITY.md": "BOARD_IDENTITY.md.j2",
+    "SOUL.md": "BOARD_SOUL.md.j2",
+    "MEMORY.md": "BOARD_MEMORY.md.j2",
+    "HEARTBEAT.md": "BOARD_HEARTBEAT.md.j2",
+    "USER.md": "BOARD_USER.md.j2",
+    "TOOLS.md": "BOARD_TOOLS.md.j2",
+}
+
+LEAD_TEMPLATE_MAP: dict[str, str] = {}
 
 _TOOLS_KV_RE = re.compile(r"^(?P<key>[A-Z0-9_]+)=(?P<value>.*)$")
 _NON_TRANSIENT_GATEWAY_ERROR_MARKERS = ("unsupported file",)

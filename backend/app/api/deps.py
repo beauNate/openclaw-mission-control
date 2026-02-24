@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
+from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 
@@ -196,7 +197,7 @@ BOARD_READ_DEP = Depends(get_board_for_actor_read)
 
 
 async def get_task_or_404(
-    task_id: str,
+    task_id: UUID,
     board: Board = BOARD_READ_DEP,
     session: AsyncSession = SESSION_DEP,
 ) -> Task:

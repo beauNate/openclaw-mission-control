@@ -5,6 +5,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { TagRef } from "./tagRef";
+import type { TaskCardReadCustomFieldValues } from "./taskCardReadCustomFieldValues";
 import type { TaskCardReadStatus } from "./taskCardReadStatus";
 
 /**
@@ -28,6 +29,7 @@ export interface TaskCardRead {
   blocked_by_task_ids?: string[];
   is_blocked?: boolean;
   tags?: TagRef[];
+  custom_field_values?: TaskCardReadCustomFieldValues;
   assignee?: string | null;
   approvals_count?: number;
   approvals_pending_count?: number;

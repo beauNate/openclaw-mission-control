@@ -22,7 +22,7 @@ import type {
 
 import type {
   AgentCreate,
-  AgentHeartbeatCreate,
+  AgentHealthStatusResponse,
   AgentNudge,
   AgentRead,
   ApprovalCreate,
@@ -40,6 +40,7 @@ import type {
   GatewayMainAskUserRequest,
   GatewayMainAskUserResponse,
   HTTPValidationError,
+  LLMErrorResponse,
   LimitOffsetPageTypeVarCustomizedAgentRead,
   LimitOffsetPageTypeVarCustomizedApprovalRead,
   LimitOffsetPageTypeVarCustomizedBoardMemoryRead,
@@ -67,8 +68,196 @@ import { customFetch } from "../../mutator";
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 /**
- * List boards visible to the authenticated agent.
- * @summary List Boards
+ * Token-authenticated liveness probe for agent API clients.
+
+Use this endpoint when the caller needs to verify both service availability and agent-token validity in one request.
+ * @summary Agent Auth Health Check
+ */
+export type agentHealthzApiV1AgentHealthzGetResponse200 = {
+  data: AgentHealthStatusResponse;
+  status: 200;
+};
+
+export type agentHealthzApiV1AgentHealthzGetResponse422 = {
+  data: HTTPValidationError;
+  status: 422;
+};
+
+export type agentHealthzApiV1AgentHealthzGetResponseSuccess =
+  agentHealthzApiV1AgentHealthzGetResponse200 & {
+    headers: Headers;
+  };
+export type agentHealthzApiV1AgentHealthzGetResponseError =
+  agentHealthzApiV1AgentHealthzGetResponse422 & {
+    headers: Headers;
+  };
+
+export type agentHealthzApiV1AgentHealthzGetResponse =
+  | agentHealthzApiV1AgentHealthzGetResponseSuccess
+  | agentHealthzApiV1AgentHealthzGetResponseError;
+
+export const getAgentHealthzApiV1AgentHealthzGetUrl = () => {
+  return `/api/v1/agent/healthz`;
+};
+
+export const agentHealthzApiV1AgentHealthzGet = async (
+  options?: RequestInit,
+): Promise<agentHealthzApiV1AgentHealthzGetResponse> => {
+  return customFetch<agentHealthzApiV1AgentHealthzGetResponse>(
+    getAgentHealthzApiV1AgentHealthzGetUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getAgentHealthzApiV1AgentHealthzGetQueryKey = () => {
+  return [`/api/v1/agent/healthz`] as const;
+};
+
+export const getAgentHealthzApiV1AgentHealthzGetQueryOptions = <
+  TData = Awaited<ReturnType<typeof agentHealthzApiV1AgentHealthzGet>>,
+  TError = HTTPValidationError,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<
+      Awaited<ReturnType<typeof agentHealthzApiV1AgentHealthzGet>>,
+      TError,
+      TData
+    >
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getAgentHealthzApiV1AgentHealthzGetQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof agentHealthzApiV1AgentHealthzGet>>
+  > = ({ signal }) =>
+    agentHealthzApiV1AgentHealthzGet({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof agentHealthzApiV1AgentHealthzGet>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type AgentHealthzApiV1AgentHealthzGetQueryResult = NonNullable<
+  Awaited<ReturnType<typeof agentHealthzApiV1AgentHealthzGet>>
+>;
+export type AgentHealthzApiV1AgentHealthzGetQueryError = HTTPValidationError;
+
+export function useAgentHealthzApiV1AgentHealthzGet<
+  TData = Awaited<ReturnType<typeof agentHealthzApiV1AgentHealthzGet>>,
+  TError = HTTPValidationError,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof agentHealthzApiV1AgentHealthzGet>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof agentHealthzApiV1AgentHealthzGet>>,
+          TError,
+          Awaited<ReturnType<typeof agentHealthzApiV1AgentHealthzGet>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useAgentHealthzApiV1AgentHealthzGet<
+  TData = Awaited<ReturnType<typeof agentHealthzApiV1AgentHealthzGet>>,
+  TError = HTTPValidationError,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof agentHealthzApiV1AgentHealthzGet>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof agentHealthzApiV1AgentHealthzGet>>,
+          TError,
+          Awaited<ReturnType<typeof agentHealthzApiV1AgentHealthzGet>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useAgentHealthzApiV1AgentHealthzGet<
+  TData = Awaited<ReturnType<typeof agentHealthzApiV1AgentHealthzGet>>,
+  TError = HTTPValidationError,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof agentHealthzApiV1AgentHealthzGet>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Agent Auth Health Check
+ */
+
+export function useAgentHealthzApiV1AgentHealthzGet<
+  TData = Awaited<ReturnType<typeof agentHealthzApiV1AgentHealthzGet>>,
+  TError = HTTPValidationError,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof agentHealthzApiV1AgentHealthzGet>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getAgentHealthzApiV1AgentHealthzGetQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Return boards the authenticated agent can access.
+
+Use this as a discovery step before board-scoped operations.
+ * @summary List boards visible to the caller
  */
 export type listBoardsApiV1AgentBoardsGetResponse200 = {
   data: LimitOffsetPageTypeVarCustomizedBoardRead;
@@ -242,7 +431,7 @@ export function useListBoardsApiV1AgentBoardsGet<
   queryKey: DataTag<QueryKey, TData, TError>;
 };
 /**
- * @summary List Boards
+ * @summary List boards visible to the caller
  */
 
 export function useListBoardsApiV1AgentBoardsGet<
@@ -278,8 +467,10 @@ export function useListBoardsApiV1AgentBoardsGet<
 }
 
 /**
- * Return a board if the authenticated agent can access it.
- * @summary Get Board
+ * Read a single board entity if it is visible to the authenticated agent.
+
+Use for targeted planning and routing decisions.
+ * @summary Fetch a board by id
  */
 export type getBoardApiV1AgentBoardsBoardIdGetResponse200 = {
   data: BoardRead;
@@ -445,7 +636,7 @@ export function useGetBoardApiV1AgentBoardsBoardIdGet<
   queryKey: DataTag<QueryKey, TData, TError>;
 };
 /**
- * @summary Get Board
+ * @summary Fetch a board by id
  */
 
 export function useGetBoardApiV1AgentBoardsBoardIdGet<
@@ -481,8 +672,10 @@ export function useGetBoardApiV1AgentBoardsBoardIdGet<
 }
 
 /**
- * List agents, optionally filtered to a board.
- * @summary List Agents
+ * Return agents visible to the caller, optionally filtered by board.
+
+Use when downstream routing or coordination needs recipient actors.
+ * @summary List visible agents
  */
 export type listAgentsApiV1AgentAgentsGetResponse200 = {
   data: LimitOffsetPageTypeVarCustomizedAgentRead;
@@ -656,7 +849,7 @@ export function useListAgentsApiV1AgentAgentsGet<
   queryKey: DataTag<QueryKey, TData, TError>;
 };
 /**
- * @summary List Agents
+ * @summary List visible agents
  */
 
 export function useListAgentsApiV1AgentAgentsGet<
@@ -692,42 +885,57 @@ export function useListAgentsApiV1AgentAgentsGet<
 }
 
 /**
- * Create an agent on the caller's board.
- * @summary Create Agent
+ * Register a new board agent and attach it to the lead's board.
+
+The target board is derived from the caller identity and cannot be changed in payload.
+ * @summary Create a board agent as lead
  */
-export type createAgentApiV1AgentAgentsPostResponse200 = {
+export type agentLeadCreateAgentResponse200 = {
   data: AgentRead;
   status: 200;
 };
 
-export type createAgentApiV1AgentAgentsPostResponse422 = {
-  data: HTTPValidationError;
+export type agentLeadCreateAgentResponse403 = {
+  data: LLMErrorResponse;
+  status: 403;
+};
+
+export type agentLeadCreateAgentResponse409 = {
+  data: LLMErrorResponse;
+  status: 409;
+};
+
+export type agentLeadCreateAgentResponse422 = {
+  data: LLMErrorResponse;
   status: 422;
 };
 
-export type createAgentApiV1AgentAgentsPostResponseSuccess =
-  createAgentApiV1AgentAgentsPostResponse200 & {
+export type agentLeadCreateAgentResponseSuccess =
+  agentLeadCreateAgentResponse200 & {
     headers: Headers;
   };
-export type createAgentApiV1AgentAgentsPostResponseError =
-  createAgentApiV1AgentAgentsPostResponse422 & {
-    headers: Headers;
-  };
+export type agentLeadCreateAgentResponseError = (
+  | agentLeadCreateAgentResponse403
+  | agentLeadCreateAgentResponse409
+  | agentLeadCreateAgentResponse422
+) & {
+  headers: Headers;
+};
 
-export type createAgentApiV1AgentAgentsPostResponse =
-  | createAgentApiV1AgentAgentsPostResponseSuccess
-  | createAgentApiV1AgentAgentsPostResponseError;
+export type agentLeadCreateAgentResponse =
+  | agentLeadCreateAgentResponseSuccess
+  | agentLeadCreateAgentResponseError;
 
-export const getCreateAgentApiV1AgentAgentsPostUrl = () => {
+export const getAgentLeadCreateAgentUrl = () => {
   return `/api/v1/agent/agents`;
 };
 
-export const createAgentApiV1AgentAgentsPost = async (
+export const agentLeadCreateAgent = async (
   agentCreate: AgentCreate,
   options?: RequestInit,
-): Promise<createAgentApiV1AgentAgentsPostResponse> => {
-  return customFetch<createAgentApiV1AgentAgentsPostResponse>(
-    getCreateAgentApiV1AgentAgentsPostUrl(),
+): Promise<agentLeadCreateAgentResponse> => {
+  return customFetch<agentLeadCreateAgentResponse>(
+    getAgentLeadCreateAgentUrl(),
     {
       ...options,
       method: "POST",
@@ -737,24 +945,24 @@ export const createAgentApiV1AgentAgentsPost = async (
   );
 };
 
-export const getCreateAgentApiV1AgentAgentsPostMutationOptions = <
-  TError = HTTPValidationError,
+export const getAgentLeadCreateAgentMutationOptions = <
+  TError = LLMErrorResponse,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createAgentApiV1AgentAgentsPost>>,
+    Awaited<ReturnType<typeof agentLeadCreateAgent>>,
     TError,
     { data: AgentCreate },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof createAgentApiV1AgentAgentsPost>>,
+  Awaited<ReturnType<typeof agentLeadCreateAgent>>,
   TError,
   { data: AgentCreate },
   TContext
 > => {
-  const mutationKey = ["createAgentApiV1AgentAgentsPost"];
+  const mutationKey = ["agentLeadCreateAgent"];
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       "mutationKey" in options.mutation &&
@@ -764,33 +972,33 @@ export const getCreateAgentApiV1AgentAgentsPostMutationOptions = <
     : { mutation: { mutationKey }, request: undefined };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createAgentApiV1AgentAgentsPost>>,
+    Awaited<ReturnType<typeof agentLeadCreateAgent>>,
     { data: AgentCreate }
   > = (props) => {
     const { data } = props ?? {};
 
-    return createAgentApiV1AgentAgentsPost(data, requestOptions);
+    return agentLeadCreateAgent(data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type CreateAgentApiV1AgentAgentsPostMutationResult = NonNullable<
-  Awaited<ReturnType<typeof createAgentApiV1AgentAgentsPost>>
+export type AgentLeadCreateAgentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof agentLeadCreateAgent>>
 >;
-export type CreateAgentApiV1AgentAgentsPostMutationBody = AgentCreate;
-export type CreateAgentApiV1AgentAgentsPostMutationError = HTTPValidationError;
+export type AgentLeadCreateAgentMutationBody = AgentCreate;
+export type AgentLeadCreateAgentMutationError = LLMErrorResponse;
 
 /**
- * @summary Create Agent
+ * @summary Create a board agent as lead
  */
-export const useCreateAgentApiV1AgentAgentsPost = <
-  TError = HTTPValidationError,
+export const useAgentLeadCreateAgent = <
+  TError = LLMErrorResponse,
   TContext = unknown,
 >(
   options?: {
     mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof createAgentApiV1AgentAgentsPost>>,
+      Awaited<ReturnType<typeof agentLeadCreateAgent>>,
       TError,
       { data: AgentCreate },
       TContext
@@ -799,18 +1007,22 @@ export const useCreateAgentApiV1AgentAgentsPost = <
   },
   queryClient?: QueryClient,
 ): UseMutationResult<
-  Awaited<ReturnType<typeof createAgentApiV1AgentAgentsPost>>,
+  Awaited<ReturnType<typeof agentLeadCreateAgent>>,
   TError,
   { data: AgentCreate },
   TContext
 > => {
   return useMutation(
-    getCreateAgentApiV1AgentAgentsPostMutationOptions(options),
+    getAgentLeadCreateAgentMutationOptions(options),
     queryClient,
   );
 };
 /**
- * List tasks on a board with optional status and assignment filters.
+ * List tasks on a board with status/assignment filters.
+
+Common patterns:
+- worker: fetch assigned inbox/in-progress tasks
+- lead: fetch unassigned inbox tasks for delegation
  * @summary List Tasks
  */
 export type listTasksApiV1AgentBoardsBoardIdTasksGetResponse200 = {
@@ -1043,45 +1255,65 @@ export function useListTasksApiV1AgentBoardsBoardIdTasksGet<
 }
 
 /**
- * Create a task on the board as the lead agent.
- * @summary Create Task
+ * Create a new task on a board and persist lead metadata.
+
+Use when a lead needs to introduce new work, create dependencies, or directly assign ownership.
+Do not use for task updates or comments; those are separate endpoints.
+ * @summary Create and assign a new board task as a lead agent
  */
-export type createTaskApiV1AgentBoardsBoardIdTasksPostResponse200 = {
+export type agentLeadCreateTaskResponse200 = {
   data: TaskRead;
   status: 200;
 };
 
-export type createTaskApiV1AgentBoardsBoardIdTasksPostResponse422 = {
-  data: HTTPValidationError;
+export type agentLeadCreateTaskResponse403 = {
+  data: LLMErrorResponse;
+  status: 403;
+};
+
+export type agentLeadCreateTaskResponse404 = {
+  data: LLMErrorResponse;
+  status: 404;
+};
+
+export type agentLeadCreateTaskResponse409 = {
+  data: LLMErrorResponse;
+  status: 409;
+};
+
+export type agentLeadCreateTaskResponse422 = {
+  data: LLMErrorResponse;
   status: 422;
 };
 
-export type createTaskApiV1AgentBoardsBoardIdTasksPostResponseSuccess =
-  createTaskApiV1AgentBoardsBoardIdTasksPostResponse200 & {
+export type agentLeadCreateTaskResponseSuccess =
+  agentLeadCreateTaskResponse200 & {
     headers: Headers;
   };
-export type createTaskApiV1AgentBoardsBoardIdTasksPostResponseError =
-  createTaskApiV1AgentBoardsBoardIdTasksPostResponse422 & {
-    headers: Headers;
-  };
+export type agentLeadCreateTaskResponseError = (
+  | agentLeadCreateTaskResponse403
+  | agentLeadCreateTaskResponse404
+  | agentLeadCreateTaskResponse409
+  | agentLeadCreateTaskResponse422
+) & {
+  headers: Headers;
+};
 
-export type createTaskApiV1AgentBoardsBoardIdTasksPostResponse =
-  | createTaskApiV1AgentBoardsBoardIdTasksPostResponseSuccess
-  | createTaskApiV1AgentBoardsBoardIdTasksPostResponseError;
+export type agentLeadCreateTaskResponse =
+  | agentLeadCreateTaskResponseSuccess
+  | agentLeadCreateTaskResponseError;
 
-export const getCreateTaskApiV1AgentBoardsBoardIdTasksPostUrl = (
-  boardId: string,
-) => {
+export const getAgentLeadCreateTaskUrl = (boardId: string) => {
   return `/api/v1/agent/boards/${boardId}/tasks`;
 };
 
-export const createTaskApiV1AgentBoardsBoardIdTasksPost = async (
+export const agentLeadCreateTask = async (
   boardId: string,
   taskCreate: TaskCreate,
   options?: RequestInit,
-): Promise<createTaskApiV1AgentBoardsBoardIdTasksPostResponse> => {
-  return customFetch<createTaskApiV1AgentBoardsBoardIdTasksPostResponse>(
-    getCreateTaskApiV1AgentBoardsBoardIdTasksPostUrl(boardId),
+): Promise<agentLeadCreateTaskResponse> => {
+  return customFetch<agentLeadCreateTaskResponse>(
+    getAgentLeadCreateTaskUrl(boardId),
     {
       ...options,
       method: "POST",
@@ -1091,24 +1323,24 @@ export const createTaskApiV1AgentBoardsBoardIdTasksPost = async (
   );
 };
 
-export const getCreateTaskApiV1AgentBoardsBoardIdTasksPostMutationOptions = <
-  TError = HTTPValidationError,
+export const getAgentLeadCreateTaskMutationOptions = <
+  TError = LLMErrorResponse,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createTaskApiV1AgentBoardsBoardIdTasksPost>>,
+    Awaited<ReturnType<typeof agentLeadCreateTask>>,
     TError,
     { boardId: string; data: TaskCreate },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof createTaskApiV1AgentBoardsBoardIdTasksPost>>,
+  Awaited<ReturnType<typeof agentLeadCreateTask>>,
   TError,
   { boardId: string; data: TaskCreate },
   TContext
 > => {
-  const mutationKey = ["createTaskApiV1AgentBoardsBoardIdTasksPost"];
+  const mutationKey = ["agentLeadCreateTask"];
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       "mutationKey" in options.mutation &&
@@ -1118,39 +1350,33 @@ export const getCreateTaskApiV1AgentBoardsBoardIdTasksPostMutationOptions = <
     : { mutation: { mutationKey }, request: undefined };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createTaskApiV1AgentBoardsBoardIdTasksPost>>,
+    Awaited<ReturnType<typeof agentLeadCreateTask>>,
     { boardId: string; data: TaskCreate }
   > = (props) => {
     const { boardId, data } = props ?? {};
 
-    return createTaskApiV1AgentBoardsBoardIdTasksPost(
-      boardId,
-      data,
-      requestOptions,
-    );
+    return agentLeadCreateTask(boardId, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type CreateTaskApiV1AgentBoardsBoardIdTasksPostMutationResult =
-  NonNullable<
-    Awaited<ReturnType<typeof createTaskApiV1AgentBoardsBoardIdTasksPost>>
-  >;
-export type CreateTaskApiV1AgentBoardsBoardIdTasksPostMutationBody = TaskCreate;
-export type CreateTaskApiV1AgentBoardsBoardIdTasksPostMutationError =
-  HTTPValidationError;
+export type AgentLeadCreateTaskMutationResult = NonNullable<
+  Awaited<ReturnType<typeof agentLeadCreateTask>>
+>;
+export type AgentLeadCreateTaskMutationBody = TaskCreate;
+export type AgentLeadCreateTaskMutationError = LLMErrorResponse;
 
 /**
- * @summary Create Task
+ * @summary Create and assign a new board task as a lead agent
  */
-export const useCreateTaskApiV1AgentBoardsBoardIdTasksPost = <
-  TError = HTTPValidationError,
+export const useAgentLeadCreateTask = <
+  TError = LLMErrorResponse,
   TContext = unknown,
 >(
   options?: {
     mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof createTaskApiV1AgentBoardsBoardIdTasksPost>>,
+      Awaited<ReturnType<typeof agentLeadCreateTask>>,
       TError,
       { boardId: string; data: TaskCreate },
       TContext
@@ -1159,18 +1385,20 @@ export const useCreateTaskApiV1AgentBoardsBoardIdTasksPost = <
   },
   queryClient?: QueryClient,
 ): UseMutationResult<
-  Awaited<ReturnType<typeof createTaskApiV1AgentBoardsBoardIdTasksPost>>,
+  Awaited<ReturnType<typeof agentLeadCreateTask>>,
   TError,
   { boardId: string; data: TaskCreate },
   TContext
 > => {
   return useMutation(
-    getCreateTaskApiV1AgentBoardsBoardIdTasksPostMutationOptions(options),
+    getAgentLeadCreateTaskMutationOptions(options),
     queryClient,
   );
 };
 /**
- * List tags available to the board's organization.
+ * List available tags for the board's organization.
+
+Use returned ids in task create/update payloads (`tag_ids`).
  * @summary List Tags
  */
 export type listTagsApiV1AgentBoardsBoardIdTagsGetResponse200 = {
@@ -1379,7 +1607,9 @@ export function useListTagsApiV1AgentBoardsBoardIdTagsGet<
 }
 
 /**
- * Update a task after board-level access checks.
+ * Update a task after board-level authorization checks.
+
+Supports status, assignment, dependencies, and optional inline comment.
  * @summary Update Task
  */
 export type updateTaskApiV1AgentBoardsBoardIdTasksTaskIdPatchResponse200 = {
@@ -1520,7 +1750,149 @@ export const useUpdateTaskApiV1AgentBoardsBoardIdTasksTaskIdPatch = <
   );
 };
 /**
- * List comments for a task visible to the authenticated agent.
+ * Delete a board task and related records.
+
+This action is restricted to board lead agents.
+ * @summary Delete a task as board lead
+ */
+export type deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDeleteResponse200 = {
+  data: OkResponse;
+  status: 200;
+};
+
+export type deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDeleteResponse422 = {
+  data: HTTPValidationError;
+  status: 422;
+};
+
+export type deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDeleteResponseSuccess =
+  deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDeleteResponse200 & {
+    headers: Headers;
+  };
+export type deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDeleteResponseError =
+  deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDeleteResponse422 & {
+    headers: Headers;
+  };
+
+export type deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDeleteResponse =
+  | deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDeleteResponseSuccess
+  | deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDeleteResponseError;
+
+export const getDeleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDeleteUrl = (
+  boardId: string,
+  taskId: string,
+) => {
+  return `/api/v1/agent/boards/${boardId}/tasks/${taskId}`;
+};
+
+export const deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDelete = async (
+  boardId: string,
+  taskId: string,
+  options?: RequestInit,
+): Promise<deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDeleteResponse> => {
+  return customFetch<deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDeleteResponse>(
+    getDeleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDeleteUrl(boardId, taskId),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getDeleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDeleteMutationOptions =
+  <TError = HTTPValidationError, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<
+      Awaited<
+        ReturnType<typeof deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDelete>
+      >,
+      TError,
+      { boardId: string; taskId: string },
+      TContext
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  }): UseMutationOptions<
+    Awaited<
+      ReturnType<typeof deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDelete>
+    >,
+    TError,
+    { boardId: string; taskId: string },
+    TContext
+  > => {
+    const mutationKey = ["deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDelete"];
+    const { mutation: mutationOptions, request: requestOptions } = options
+      ? options.mutation &&
+        "mutationKey" in options.mutation &&
+        options.mutation.mutationKey
+        ? options
+        : { ...options, mutation: { ...options.mutation, mutationKey } }
+      : { mutation: { mutationKey }, request: undefined };
+
+    const mutationFn: MutationFunction<
+      Awaited<
+        ReturnType<typeof deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDelete>
+      >,
+      { boardId: string; taskId: string }
+    > = (props) => {
+      const { boardId, taskId } = props ?? {};
+
+      return deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDelete(
+        boardId,
+        taskId,
+        requestOptions,
+      );
+    };
+
+    return { mutationFn, ...mutationOptions };
+  };
+
+export type DeleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDeleteMutationResult =
+  NonNullable<
+    Awaited<
+      ReturnType<typeof deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDelete>
+    >
+  >;
+
+export type DeleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDeleteMutationError =
+  HTTPValidationError;
+
+/**
+ * @summary Delete a task as board lead
+ */
+export const useDeleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDelete = <
+  TError = HTTPValidationError,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<
+        ReturnType<typeof deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDelete>
+      >,
+      TError,
+      { boardId: string; taskId: string },
+      TContext
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<
+    ReturnType<typeof deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDelete>
+  >,
+  TError,
+  { boardId: string; taskId: string },
+  TContext
+> => {
+  return useMutation(
+    getDeleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDeleteMutationOptions(
+      options,
+    ),
+    queryClient,
+  );
+};
+/**
+ * List task comments visible to the authenticated agent.
+
+Read this before posting updates to avoid duplicate or low-value comments.
  * @summary List Task Comments
  */
 export type listTaskCommentsApiV1AgentBoardsBoardIdTasksTaskIdCommentsGetResponse200 =
@@ -1854,7 +2226,9 @@ export function useListTaskCommentsApiV1AgentBoardsBoardIdTasksTaskIdCommentsGet
 }
 
 /**
- * Create a task comment on behalf of the authenticated agent.
+ * Create a task comment as the authenticated agent.
+
+This is the primary collaboration/log surface for task progress.
  * @summary Create Task Comment
  */
 export type createTaskCommentApiV1AgentBoardsBoardIdTasksTaskIdCommentsPostResponse200 =
@@ -2014,7 +2388,9 @@ export const useCreateTaskCommentApiV1AgentBoardsBoardIdTasksTaskIdCommentsPost 
     );
   };
 /**
- * List board memory entries with optional chat filtering.
+ * List board memory with optional chat filtering.
+
+Use `is_chat=false` for durable context and `is_chat=true` for board chat.
  * @summary List Board Memory
  */
 export type listBoardMemoryApiV1AgentBoardsBoardIdMemoryGetResponse200 = {
@@ -2278,6 +2654,8 @@ export function useListBoardMemoryApiV1AgentBoardsBoardIdMemoryGet<
 
 /**
  * Create a board memory entry.
+
+Use tags to indicate purpose (e.g. `chat`, `decision`, `plan`, `handoff`).
  * @summary Create Board Memory
  */
 export type createBoardMemoryApiV1AgentBoardsBoardIdMemoryPostResponse200 = {
@@ -2418,6 +2796,8 @@ export const useCreateBoardMemoryApiV1AgentBoardsBoardIdMemoryPost = <
 };
 /**
  * List approvals for a board.
+
+Use status filtering to process pending approvals efficiently.
  * @summary List Approvals
  */
 export type listApprovalsApiV1AgentBoardsBoardIdApprovalsGetResponse200 = {
@@ -2685,7 +3065,9 @@ export function useListApprovalsApiV1AgentBoardsBoardIdApprovalsGet<
 }
 
 /**
- * Create a board approval request.
+ * Create an approval request for risky or low-confidence actions.
+
+Include `task_id` or `task_ids` to scope the decision precisely.
  * @summary Create Approval
  */
 export type createApprovalApiV1AgentBoardsBoardIdApprovalsPostResponse200 = {
@@ -2825,7 +3207,9 @@ export const useCreateApprovalApiV1AgentBoardsBoardIdApprovalsPost = <
   );
 };
 /**
- * Apply onboarding updates for a board.
+ * Apply board onboarding updates from an agent workflow.
+
+Used during structured objective/success-metric intake loops.
  * @summary Update Onboarding
  */
 export type updateOnboardingApiV1AgentBoardsBoardIdOnboardingPostResponse200 = {
@@ -2987,52 +3371,65 @@ export const useUpdateOnboardingApiV1AgentBoardsBoardIdOnboardingPost = <
   );
 };
 /**
- * Send a direct nudge message to a board agent.
- * @summary Nudge Agent
+ * Send a direct coordination message to a specific board agent.
+
+Use this when a lead sees stalled, idle, or misaligned work.
+ * @summary Nudge an agent on a board
  */
-export type nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePostResponse200 =
-  {
-    data: OkResponse;
-    status: 200;
-  };
+export type agentLeadNudgeAgentResponse200 = {
+  data: OkResponse;
+  status: 200;
+};
 
-export type nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePostResponse422 =
-  {
-    data: HTTPValidationError;
-    status: 422;
-  };
+export type agentLeadNudgeAgentResponse403 = {
+  data: LLMErrorResponse;
+  status: 403;
+};
 
-export type nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePostResponseSuccess =
-  nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePostResponse200 & {
+export type agentLeadNudgeAgentResponse404 = {
+  data: LLMErrorResponse;
+  status: 404;
+};
+
+export type agentLeadNudgeAgentResponse422 = {
+  data: LLMErrorResponse;
+  status: 422;
+};
+
+export type agentLeadNudgeAgentResponse502 = {
+  data: LLMErrorResponse;
+  status: 502;
+};
+
+export type agentLeadNudgeAgentResponseSuccess =
+  agentLeadNudgeAgentResponse200 & {
     headers: Headers;
   };
-export type nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePostResponseError =
-  nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePostResponse422 & {
-    headers: Headers;
-  };
+export type agentLeadNudgeAgentResponseError = (
+  | agentLeadNudgeAgentResponse403
+  | agentLeadNudgeAgentResponse404
+  | agentLeadNudgeAgentResponse422
+  | agentLeadNudgeAgentResponse502
+) & {
+  headers: Headers;
+};
 
-export type nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePostResponse =
-  | nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePostResponseSuccess
-  | nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePostResponseError;
+export type agentLeadNudgeAgentResponse =
+  | agentLeadNudgeAgentResponseSuccess
+  | agentLeadNudgeAgentResponseError;
 
-export const getNudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePostUrl = (
-  boardId: string,
-  agentId: string,
-) => {
+export const getAgentLeadNudgeAgentUrl = (boardId: string, agentId: string) => {
   return `/api/v1/agent/boards/${boardId}/agents/${agentId}/nudge`;
 };
 
-export const nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePost = async (
+export const agentLeadNudgeAgent = async (
   boardId: string,
   agentId: string,
   agentNudge: AgentNudge,
   options?: RequestInit,
-): Promise<nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePostResponse> => {
-  return customFetch<nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePostResponse>(
-    getNudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePostUrl(
-      boardId,
-      agentId,
-    ),
+): Promise<agentLeadNudgeAgentResponse> => {
+  return customFetch<agentLeadNudgeAgentResponse>(
+    getAgentLeadNudgeAgentUrl(boardId, agentId),
     {
       ...options,
       method: "POST",
@@ -3042,84 +3439,60 @@ export const nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePost = async (
   );
 };
 
-export const getNudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePostMutationOptions =
-  <TError = HTTPValidationError, TContext = unknown>(options?: {
-    mutation?: UseMutationOptions<
-      Awaited<
-        ReturnType<
-          typeof nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePost
-        >
-      >,
-      TError,
-      { boardId: string; agentId: string; data: AgentNudge },
-      TContext
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  }): UseMutationOptions<
-    Awaited<
-      ReturnType<typeof nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePost>
-    >,
+export const getAgentLeadNudgeAgentMutationOptions = <
+  TError = LLMErrorResponse,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof agentLeadNudgeAgent>>,
     TError,
     { boardId: string; agentId: string; data: AgentNudge },
     TContext
-  > => {
-    const mutationKey = [
-      "nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePost",
-    ];
-    const { mutation: mutationOptions, request: requestOptions } = options
-      ? options.mutation &&
-        "mutationKey" in options.mutation &&
-        options.mutation.mutationKey
-        ? options
-        : { ...options, mutation: { ...options.mutation, mutationKey } }
-      : { mutation: { mutationKey }, request: undefined };
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof agentLeadNudgeAgent>>,
+  TError,
+  { boardId: string; agentId: string; data: AgentNudge },
+  TContext
+> => {
+  const mutationKey = ["agentLeadNudgeAgent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
 
-    const mutationFn: MutationFunction<
-      Awaited<
-        ReturnType<
-          typeof nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePost
-        >
-      >,
-      { boardId: string; agentId: string; data: AgentNudge }
-    > = (props) => {
-      const { boardId, agentId, data } = props ?? {};
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof agentLeadNudgeAgent>>,
+    { boardId: string; agentId: string; data: AgentNudge }
+  > = (props) => {
+    const { boardId, agentId, data } = props ?? {};
 
-      return nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePost(
-        boardId,
-        agentId,
-        data,
-        requestOptions,
-      );
-    };
-
-    return { mutationFn, ...mutationOptions };
+    return agentLeadNudgeAgent(boardId, agentId, data, requestOptions);
   };
 
-export type NudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePostMutationResult =
-  NonNullable<
-    Awaited<
-      ReturnType<typeof nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePost>
-    >
-  >;
-export type NudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePostMutationBody =
-  AgentNudge;
-export type NudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePostMutationError =
-  HTTPValidationError;
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AgentLeadNudgeAgentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof agentLeadNudgeAgent>>
+>;
+export type AgentLeadNudgeAgentMutationBody = AgentNudge;
+export type AgentLeadNudgeAgentMutationError = LLMErrorResponse;
 
 /**
- * @summary Nudge Agent
+ * @summary Nudge an agent on a board
  */
-export const useNudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePost = <
-  TError = HTTPValidationError,
+export const useAgentLeadNudgeAgent = <
+  TError = LLMErrorResponse,
   TContext = unknown,
 >(
   options?: {
     mutation?: UseMutationOptions<
-      Awaited<
-        ReturnType<
-          typeof nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePost
-        >
-      >,
+      Awaited<ReturnType<typeof agentLeadNudgeAgent>>,
       TError,
       { boardId: string; agentId: string; data: AgentNudge },
       TContext
@@ -3128,23 +3501,21 @@ export const useNudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePost = <
   },
   queryClient?: QueryClient,
 ): UseMutationResult<
-  Awaited<
-    ReturnType<typeof nudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePost>
-  >,
+  Awaited<ReturnType<typeof agentLeadNudgeAgent>>,
   TError,
   { boardId: string; agentId: string; data: AgentNudge },
   TContext
 > => {
   return useMutation(
-    getNudgeAgentApiV1AgentBoardsBoardIdAgentsAgentIdNudgePostMutationOptions(
-      options,
-    ),
+    getAgentLeadNudgeAgentMutationOptions(options),
     queryClient,
   );
 };
 /**
- * Record heartbeat status for the authenticated agent.
- * @summary Agent Heartbeat
+ * Record liveness for the authenticated agent.
+
+Use this when the agent heartbeat loop checks in.
+ * @summary Upsert agent heartbeat
  */
 export type agentHeartbeatApiV1AgentHeartbeatPostResponse200 = {
   data: AgentRead;
@@ -3174,7 +3545,6 @@ export const getAgentHeartbeatApiV1AgentHeartbeatPostUrl = () => {
 };
 
 export const agentHeartbeatApiV1AgentHeartbeatPost = async (
-  agentHeartbeatCreate: AgentHeartbeatCreate,
   options?: RequestInit,
 ): Promise<agentHeartbeatApiV1AgentHeartbeatPostResponse> => {
   return customFetch<agentHeartbeatApiV1AgentHeartbeatPostResponse>(
@@ -3182,8 +3552,6 @@ export const agentHeartbeatApiV1AgentHeartbeatPost = async (
     {
       ...options,
       method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(agentHeartbeatCreate),
     },
   );
 };
@@ -3195,14 +3563,14 @@ export const getAgentHeartbeatApiV1AgentHeartbeatPostMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof agentHeartbeatApiV1AgentHeartbeatPost>>,
     TError,
-    { data: AgentHeartbeatCreate },
+    void,
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof agentHeartbeatApiV1AgentHeartbeatPost>>,
   TError,
-  { data: AgentHeartbeatCreate },
+  void,
   TContext
 > => {
   const mutationKey = ["agentHeartbeatApiV1AgentHeartbeatPost"];
@@ -3216,11 +3584,9 @@ export const getAgentHeartbeatApiV1AgentHeartbeatPostMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof agentHeartbeatApiV1AgentHeartbeatPost>>,
-    { data: AgentHeartbeatCreate }
-  > = (props) => {
-    const { data } = props ?? {};
-
-    return agentHeartbeatApiV1AgentHeartbeatPost(data, requestOptions);
+    void
+  > = () => {
+    return agentHeartbeatApiV1AgentHeartbeatPost(requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -3229,13 +3595,12 @@ export const getAgentHeartbeatApiV1AgentHeartbeatPostMutationOptions = <
 export type AgentHeartbeatApiV1AgentHeartbeatPostMutationResult = NonNullable<
   Awaited<ReturnType<typeof agentHeartbeatApiV1AgentHeartbeatPost>>
 >;
-export type AgentHeartbeatApiV1AgentHeartbeatPostMutationBody =
-  AgentHeartbeatCreate;
+
 export type AgentHeartbeatApiV1AgentHeartbeatPostMutationError =
   HTTPValidationError;
 
 /**
- * @summary Agent Heartbeat
+ * @summary Upsert agent heartbeat
  */
 export const useAgentHeartbeatApiV1AgentHeartbeatPost = <
   TError = HTTPValidationError,
@@ -3245,7 +3610,7 @@ export const useAgentHeartbeatApiV1AgentHeartbeatPost = <
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof agentHeartbeatApiV1AgentHeartbeatPost>>,
       TError,
-      { data: AgentHeartbeatCreate },
+      void,
       TContext
     >;
     request?: SecondParameter<typeof customFetch>;
@@ -3254,7 +3619,7 @@ export const useAgentHeartbeatApiV1AgentHeartbeatPost = <
 ): UseMutationResult<
   Awaited<ReturnType<typeof agentHeartbeatApiV1AgentHeartbeatPost>>,
   TError,
-  { data: AgentHeartbeatCreate },
+  void,
   TContext
 > => {
   return useMutation(
@@ -3263,7 +3628,9 @@ export const useAgentHeartbeatApiV1AgentHeartbeatPost = <
   );
 };
 /**
- * Fetch the target agent's SOUL.md content from the gateway.
+ * Fetch an agent's SOUL.md content.
+
+Allowed for board lead, or for an agent reading its own SOUL.
  * @summary Get Agent Soul
  */
 export type getAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulGetResponse200 =
@@ -3547,142 +3914,131 @@ export function useGetAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulGet<
 }
 
 /**
- * Update an agent's SOUL.md content in DB and gateway.
- * @summary Update Agent Soul
+ * Write SOUL.md content for a board agent and persist it for reprovisioning.
+
+Use this when role instructions or behavior guardrails need updates.
+ * @summary Update an agent's SOUL template
  */
-export type updateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPutResponse200 =
-  {
-    data: OkResponse;
-    status: 200;
-  };
+export type agentLeadUpdateAgentSoulResponse200 = {
+  data: OkResponse;
+  status: 200;
+};
 
-export type updateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPutResponse422 =
-  {
-    data: HTTPValidationError;
-    status: 422;
-  };
+export type agentLeadUpdateAgentSoulResponse403 = {
+  data: LLMErrorResponse;
+  status: 403;
+};
 
-export type updateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPutResponseSuccess =
-  updateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPutResponse200 & {
+export type agentLeadUpdateAgentSoulResponse404 = {
+  data: LLMErrorResponse;
+  status: 404;
+};
+
+export type agentLeadUpdateAgentSoulResponse422 = {
+  data: LLMErrorResponse;
+  status: 422;
+};
+
+export type agentLeadUpdateAgentSoulResponse502 = {
+  data: LLMErrorResponse;
+  status: 502;
+};
+
+export type agentLeadUpdateAgentSoulResponseSuccess =
+  agentLeadUpdateAgentSoulResponse200 & {
     headers: Headers;
   };
-export type updateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPutResponseError =
-  updateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPutResponse422 & {
-    headers: Headers;
-  };
+export type agentLeadUpdateAgentSoulResponseError = (
+  | agentLeadUpdateAgentSoulResponse403
+  | agentLeadUpdateAgentSoulResponse404
+  | agentLeadUpdateAgentSoulResponse422
+  | agentLeadUpdateAgentSoulResponse502
+) & {
+  headers: Headers;
+};
 
-export type updateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPutResponse =
-  | updateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPutResponseSuccess
-  | updateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPutResponseError;
+export type agentLeadUpdateAgentSoulResponse =
+  | agentLeadUpdateAgentSoulResponseSuccess
+  | agentLeadUpdateAgentSoulResponseError;
 
-export const getUpdateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPutUrl =
-  (boardId: string, agentId: string) => {
-    return `/api/v1/agent/boards/${boardId}/agents/${agentId}/soul`;
-  };
+export const getAgentLeadUpdateAgentSoulUrl = (
+  boardId: string,
+  agentId: string,
+) => {
+  return `/api/v1/agent/boards/${boardId}/agents/${agentId}/soul`;
+};
 
-export const updateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPut =
-  async (
-    boardId: string,
-    agentId: string,
-    soulUpdateRequest: SoulUpdateRequest,
-    options?: RequestInit,
-  ): Promise<updateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPutResponse> => {
-    return customFetch<updateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPutResponse>(
-      getUpdateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPutUrl(
-        boardId,
-        agentId,
-      ),
-      {
-        ...options,
-        method: "PUT",
-        headers: { "Content-Type": "application/json", ...options?.headers },
-        body: JSON.stringify(soulUpdateRequest),
-      },
-    );
-  };
+export const agentLeadUpdateAgentSoul = async (
+  boardId: string,
+  agentId: string,
+  soulUpdateRequest: SoulUpdateRequest,
+  options?: RequestInit,
+): Promise<agentLeadUpdateAgentSoulResponse> => {
+  return customFetch<agentLeadUpdateAgentSoulResponse>(
+    getAgentLeadUpdateAgentSoulUrl(boardId, agentId),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(soulUpdateRequest),
+    },
+  );
+};
 
-export const getUpdateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPutMutationOptions =
-  <TError = HTTPValidationError, TContext = unknown>(options?: {
-    mutation?: UseMutationOptions<
-      Awaited<
-        ReturnType<
-          typeof updateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPut
-        >
-      >,
-      TError,
-      { boardId: string; agentId: string; data: SoulUpdateRequest },
-      TContext
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  }): UseMutationOptions<
-    Awaited<
-      ReturnType<
-        typeof updateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPut
-      >
-    >,
+export const getAgentLeadUpdateAgentSoulMutationOptions = <
+  TError = LLMErrorResponse,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof agentLeadUpdateAgentSoul>>,
     TError,
     { boardId: string; agentId: string; data: SoulUpdateRequest },
     TContext
-  > => {
-    const mutationKey = [
-      "updateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPut",
-    ];
-    const { mutation: mutationOptions, request: requestOptions } = options
-      ? options.mutation &&
-        "mutationKey" in options.mutation &&
-        options.mutation.mutationKey
-        ? options
-        : { ...options, mutation: { ...options.mutation, mutationKey } }
-      : { mutation: { mutationKey }, request: undefined };
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof agentLeadUpdateAgentSoul>>,
+  TError,
+  { boardId: string; agentId: string; data: SoulUpdateRequest },
+  TContext
+> => {
+  const mutationKey = ["agentLeadUpdateAgentSoul"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
 
-    const mutationFn: MutationFunction<
-      Awaited<
-        ReturnType<
-          typeof updateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPut
-        >
-      >,
-      { boardId: string; agentId: string; data: SoulUpdateRequest }
-    > = (props) => {
-      const { boardId, agentId, data } = props ?? {};
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof agentLeadUpdateAgentSoul>>,
+    { boardId: string; agentId: string; data: SoulUpdateRequest }
+  > = (props) => {
+    const { boardId, agentId, data } = props ?? {};
 
-      return updateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPut(
-        boardId,
-        agentId,
-        data,
-        requestOptions,
-      );
-    };
-
-    return { mutationFn, ...mutationOptions };
+    return agentLeadUpdateAgentSoul(boardId, agentId, data, requestOptions);
   };
 
-export type UpdateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPutMutationResult =
-  NonNullable<
-    Awaited<
-      ReturnType<
-        typeof updateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPut
-      >
-    >
-  >;
-export type UpdateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPutMutationBody =
-  SoulUpdateRequest;
-export type UpdateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPutMutationError =
-  HTTPValidationError;
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AgentLeadUpdateAgentSoulMutationResult = NonNullable<
+  Awaited<ReturnType<typeof agentLeadUpdateAgentSoul>>
+>;
+export type AgentLeadUpdateAgentSoulMutationBody = SoulUpdateRequest;
+export type AgentLeadUpdateAgentSoulMutationError = LLMErrorResponse;
 
 /**
- * @summary Update Agent Soul
+ * @summary Update an agent's SOUL template
  */
-export const useUpdateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPut = <
-  TError = HTTPValidationError,
+export const useAgentLeadUpdateAgentSoul = <
+  TError = LLMErrorResponse,
   TContext = unknown,
 >(
   options?: {
     mutation?: UseMutationOptions<
-      Awaited<
-        ReturnType<
-          typeof updateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPut
-        >
-      >,
+      Awaited<ReturnType<typeof agentLeadUpdateAgentSoul>>,
       TError,
       { boardId: string; agentId: string; data: SoulUpdateRequest },
       TContext
@@ -3691,154 +4047,135 @@ export const useUpdateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPut = <
   },
   queryClient?: QueryClient,
 ): UseMutationResult<
-  Awaited<
-    ReturnType<
-      typeof updateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPut
-    >
-  >,
+  Awaited<ReturnType<typeof agentLeadUpdateAgentSoul>>,
   TError,
   { boardId: string; agentId: string; data: SoulUpdateRequest },
   TContext
 > => {
   return useMutation(
-    getUpdateAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulPutMutationOptions(
-      options,
-    ),
+    getAgentLeadUpdateAgentSoulMutationOptions(options),
     queryClient,
   );
 };
 /**
- * Delete a board agent as the board lead.
- * @summary Delete Board Agent
+ * Permanently remove a board agent and tear down associated lifecycle state.
+
+Use sparingly; prefer reassignment for continuity-sensitive teams.
+ * @summary Delete a board agent as lead
  */
-export type deleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDeleteResponse200 =
-  {
-    data: OkResponse;
-    status: 200;
-  };
+export type agentLeadDeleteBoardAgentResponse200 = {
+  data: OkResponse;
+  status: 200;
+};
 
-export type deleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDeleteResponse422 =
-  {
-    data: HTTPValidationError;
-    status: 422;
-  };
+export type agentLeadDeleteBoardAgentResponse403 = {
+  data: LLMErrorResponse;
+  status: 403;
+};
 
-export type deleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDeleteResponseSuccess =
-  deleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDeleteResponse200 & {
+export type agentLeadDeleteBoardAgentResponse404 = {
+  data: LLMErrorResponse;
+  status: 404;
+};
+
+export type agentLeadDeleteBoardAgentResponse422 = {
+  data: HTTPValidationError;
+  status: 422;
+};
+
+export type agentLeadDeleteBoardAgentResponseSuccess =
+  agentLeadDeleteBoardAgentResponse200 & {
     headers: Headers;
   };
-export type deleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDeleteResponseError =
-  deleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDeleteResponse422 & {
-    headers: Headers;
-  };
+export type agentLeadDeleteBoardAgentResponseError = (
+  | agentLeadDeleteBoardAgentResponse403
+  | agentLeadDeleteBoardAgentResponse404
+  | agentLeadDeleteBoardAgentResponse422
+) & {
+  headers: Headers;
+};
 
-export type deleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDeleteResponse =
-  | deleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDeleteResponseSuccess
-  | deleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDeleteResponseError;
+export type agentLeadDeleteBoardAgentResponse =
+  | agentLeadDeleteBoardAgentResponseSuccess
+  | agentLeadDeleteBoardAgentResponseError;
 
-export const getDeleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDeleteUrl =
-  (boardId: string, agentId: string) => {
-    return `/api/v1/agent/boards/${boardId}/agents/${agentId}`;
-  };
+export const getAgentLeadDeleteBoardAgentUrl = (
+  boardId: string,
+  agentId: string,
+) => {
+  return `/api/v1/agent/boards/${boardId}/agents/${agentId}`;
+};
 
-export const deleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDelete =
-  async (
-    boardId: string,
-    agentId: string,
-    options?: RequestInit,
-  ): Promise<deleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDeleteResponse> => {
-    return customFetch<deleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDeleteResponse>(
-      getDeleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDeleteUrl(
-        boardId,
-        agentId,
-      ),
-      {
-        ...options,
-        method: "DELETE",
-      },
-    );
-  };
+export const agentLeadDeleteBoardAgent = async (
+  boardId: string,
+  agentId: string,
+  options?: RequestInit,
+): Promise<agentLeadDeleteBoardAgentResponse> => {
+  return customFetch<agentLeadDeleteBoardAgentResponse>(
+    getAgentLeadDeleteBoardAgentUrl(boardId, agentId),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
 
-export const getDeleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDeleteMutationOptions =
-  <TError = HTTPValidationError, TContext = unknown>(options?: {
-    mutation?: UseMutationOptions<
-      Awaited<
-        ReturnType<
-          typeof deleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDelete
-        >
-      >,
-      TError,
-      { boardId: string; agentId: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  }): UseMutationOptions<
-    Awaited<
-      ReturnType<
-        typeof deleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDelete
-      >
-    >,
+export const getAgentLeadDeleteBoardAgentMutationOptions = <
+  TError = LLMErrorResponse | HTTPValidationError,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof agentLeadDeleteBoardAgent>>,
     TError,
     { boardId: string; agentId: string },
     TContext
-  > => {
-    const mutationKey = [
-      "deleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDelete",
-    ];
-    const { mutation: mutationOptions, request: requestOptions } = options
-      ? options.mutation &&
-        "mutationKey" in options.mutation &&
-        options.mutation.mutationKey
-        ? options
-        : { ...options, mutation: { ...options.mutation, mutationKey } }
-      : { mutation: { mutationKey }, request: undefined };
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof agentLeadDeleteBoardAgent>>,
+  TError,
+  { boardId: string; agentId: string },
+  TContext
+> => {
+  const mutationKey = ["agentLeadDeleteBoardAgent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
 
-    const mutationFn: MutationFunction<
-      Awaited<
-        ReturnType<
-          typeof deleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDelete
-        >
-      >,
-      { boardId: string; agentId: string }
-    > = (props) => {
-      const { boardId, agentId } = props ?? {};
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof agentLeadDeleteBoardAgent>>,
+    { boardId: string; agentId: string }
+  > = (props) => {
+    const { boardId, agentId } = props ?? {};
 
-      return deleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDelete(
-        boardId,
-        agentId,
-        requestOptions,
-      );
-    };
-
-    return { mutationFn, ...mutationOptions };
+    return agentLeadDeleteBoardAgent(boardId, agentId, requestOptions);
   };
 
-export type DeleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDeleteMutationResult =
-  NonNullable<
-    Awaited<
-      ReturnType<
-        typeof deleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDelete
-      >
-    >
-  >;
+  return { mutationFn, ...mutationOptions };
+};
 
-export type DeleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDeleteMutationError =
-  HTTPValidationError;
+export type AgentLeadDeleteBoardAgentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof agentLeadDeleteBoardAgent>>
+>;
+
+export type AgentLeadDeleteBoardAgentMutationError =
+  | LLMErrorResponse
+  | HTTPValidationError;
 
 /**
- * @summary Delete Board Agent
+ * @summary Delete a board agent as lead
  */
-export const useDeleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDelete = <
-  TError = HTTPValidationError,
+export const useAgentLeadDeleteBoardAgent = <
+  TError = LLMErrorResponse | HTTPValidationError,
   TContext = unknown,
 >(
   options?: {
     mutation?: UseMutationOptions<
-      Awaited<
-        ReturnType<
-          typeof deleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDelete
-        >
-      >,
+      Awaited<ReturnType<typeof agentLeadDeleteBoardAgent>>,
       TError,
       { boardId: string; agentId: string },
       TContext
@@ -3847,486 +4184,436 @@ export const useDeleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDelete = <
   },
   queryClient?: QueryClient,
 ): UseMutationResult<
-  Awaited<
-    ReturnType<
-      typeof deleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDelete
-    >
-  >,
+  Awaited<ReturnType<typeof agentLeadDeleteBoardAgent>>,
   TError,
   { boardId: string; agentId: string },
   TContext
 > => {
   return useMutation(
-    getDeleteBoardAgentApiV1AgentBoardsBoardIdAgentsAgentIdDeleteMutationOptions(
-      options,
-    ),
+    getAgentLeadDeleteBoardAgentMutationOptions(options),
     queryClient,
   );
 };
 /**
- * Route a lead's ask-user request through the dedicated gateway agent.
- * @summary Ask User Via Gateway Main
+ * Escalate a high-impact decision or ambiguity through the gateway-main interaction channel.
+
+Use when lead-level context needs human confirmation or consent.
+ * @summary Ask the human via gateway-main
  */
-export type askUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPostResponse200 =
-  {
-    data: GatewayMainAskUserResponse;
-    status: 200;
-  };
+export type agentLeadAskUserViaGatewayMainResponse200 = {
+  data: GatewayMainAskUserResponse;
+  status: 200;
+};
 
-export type askUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPostResponse422 =
-  {
-    data: HTTPValidationError;
-    status: 422;
-  };
+export type agentLeadAskUserViaGatewayMainResponse403 = {
+  data: LLMErrorResponse;
+  status: 403;
+};
 
-export type askUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPostResponseSuccess =
-  askUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPostResponse200 & {
+export type agentLeadAskUserViaGatewayMainResponse404 = {
+  data: LLMErrorResponse;
+  status: 404;
+};
+
+export type agentLeadAskUserViaGatewayMainResponse422 = {
+  data: HTTPValidationError;
+  status: 422;
+};
+
+export type agentLeadAskUserViaGatewayMainResponse502 = {
+  data: LLMErrorResponse;
+  status: 502;
+};
+
+export type agentLeadAskUserViaGatewayMainResponseSuccess =
+  agentLeadAskUserViaGatewayMainResponse200 & {
     headers: Headers;
   };
-export type askUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPostResponseError =
-  askUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPostResponse422 & {
-    headers: Headers;
+export type agentLeadAskUserViaGatewayMainResponseError = (
+  | agentLeadAskUserViaGatewayMainResponse403
+  | agentLeadAskUserViaGatewayMainResponse404
+  | agentLeadAskUserViaGatewayMainResponse422
+  | agentLeadAskUserViaGatewayMainResponse502
+) & {
+  headers: Headers;
+};
+
+export type agentLeadAskUserViaGatewayMainResponse =
+  | agentLeadAskUserViaGatewayMainResponseSuccess
+  | agentLeadAskUserViaGatewayMainResponseError;
+
+export const getAgentLeadAskUserViaGatewayMainUrl = (boardId: string) => {
+  return `/api/v1/agent/boards/${boardId}/gateway/main/ask-user`;
+};
+
+export const agentLeadAskUserViaGatewayMain = async (
+  boardId: string,
+  gatewayMainAskUserRequest: GatewayMainAskUserRequest,
+  options?: RequestInit,
+): Promise<agentLeadAskUserViaGatewayMainResponse> => {
+  return customFetch<agentLeadAskUserViaGatewayMainResponse>(
+    getAgentLeadAskUserViaGatewayMainUrl(boardId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(gatewayMainAskUserRequest),
+    },
+  );
+};
+
+export const getAgentLeadAskUserViaGatewayMainMutationOptions = <
+  TError = LLMErrorResponse | HTTPValidationError,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof agentLeadAskUserViaGatewayMain>>,
+    TError,
+    { boardId: string; data: GatewayMainAskUserRequest },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof agentLeadAskUserViaGatewayMain>>,
+  TError,
+  { boardId: string; data: GatewayMainAskUserRequest },
+  TContext
+> => {
+  const mutationKey = ["agentLeadAskUserViaGatewayMain"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof agentLeadAskUserViaGatewayMain>>,
+    { boardId: string; data: GatewayMainAskUserRequest }
+  > = (props) => {
+    const { boardId, data } = props ?? {};
+
+    return agentLeadAskUserViaGatewayMain(boardId, data, requestOptions);
   };
 
-export type askUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPostResponse =
+  return { mutationFn, ...mutationOptions };
+};
 
-    | askUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPostResponseSuccess
-    | askUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPostResponseError;
+export type AgentLeadAskUserViaGatewayMainMutationResult = NonNullable<
+  Awaited<ReturnType<typeof agentLeadAskUserViaGatewayMain>>
+>;
+export type AgentLeadAskUserViaGatewayMainMutationBody =
+  GatewayMainAskUserRequest;
+export type AgentLeadAskUserViaGatewayMainMutationError =
+  | LLMErrorResponse
+  | HTTPValidationError;
 
-export const getAskUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPostUrl =
-  (boardId: string) => {
-    return `/api/v1/agent/boards/${boardId}/gateway/main/ask-user`;
-  };
-
-export const askUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPost =
-  async (
-    boardId: string,
-    gatewayMainAskUserRequest: GatewayMainAskUserRequest,
-    options?: RequestInit,
-  ): Promise<askUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPostResponse> => {
-    return customFetch<askUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPostResponse>(
-      getAskUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPostUrl(
-        boardId,
-      ),
-      {
-        ...options,
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...options?.headers },
-        body: JSON.stringify(gatewayMainAskUserRequest),
-      },
-    );
-  };
-
-export const getAskUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPostMutationOptions =
-  <TError = HTTPValidationError, TContext = unknown>(options?: {
+/**
+ * @summary Ask the human via gateway-main
+ */
+export const useAgentLeadAskUserViaGatewayMain = <
+  TError = LLMErrorResponse | HTTPValidationError,
+  TContext = unknown,
+>(
+  options?: {
     mutation?: UseMutationOptions<
-      Awaited<
-        ReturnType<
-          typeof askUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPost
-        >
-      >,
+      Awaited<ReturnType<typeof agentLeadAskUserViaGatewayMain>>,
       TError,
       { boardId: string; data: GatewayMainAskUserRequest },
       TContext
     >;
     request?: SecondParameter<typeof customFetch>;
-  }): UseMutationOptions<
-    Awaited<
-      ReturnType<
-        typeof askUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPost
-      >
-    >,
-    TError,
-    { boardId: string; data: GatewayMainAskUserRequest },
-    TContext
-  > => {
-    const mutationKey = [
-      "askUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPost",
-    ];
-    const { mutation: mutationOptions, request: requestOptions } = options
-      ? options.mutation &&
-        "mutationKey" in options.mutation &&
-        options.mutation.mutationKey
-        ? options
-        : { ...options, mutation: { ...options.mutation, mutationKey } }
-      : { mutation: { mutationKey }, request: undefined };
-
-    const mutationFn: MutationFunction<
-      Awaited<
-        ReturnType<
-          typeof askUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPost
-        >
-      >,
-      { boardId: string; data: GatewayMainAskUserRequest }
-    > = (props) => {
-      const { boardId, data } = props ?? {};
-
-      return askUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPost(
-        boardId,
-        data,
-        requestOptions,
-      );
-    };
-
-    return { mutationFn, ...mutationOptions };
-  };
-
-export type AskUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPostMutationResult =
-  NonNullable<
-    Awaited<
-      ReturnType<
-        typeof askUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPost
-      >
-    >
-  >;
-export type AskUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPostMutationBody =
-  GatewayMainAskUserRequest;
-export type AskUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPostMutationError =
-  HTTPValidationError;
-
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof agentLeadAskUserViaGatewayMain>>,
+  TError,
+  { boardId: string; data: GatewayMainAskUserRequest },
+  TContext
+> => {
+  return useMutation(
+    getAgentLeadAskUserViaGatewayMainMutationOptions(options),
+    queryClient,
+  );
+};
 /**
- * @summary Ask User Via Gateway Main
+ * Route a direct lead handoff or question from an agent to the board lead.
+
+Use when a lead requires explicit, board-scoped routing.
+ * @summary Message board lead via gateway-main
  */
-export const useAskUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPost =
-  <TError = HTTPValidationError, TContext = unknown>(
-    options?: {
-      mutation?: UseMutationOptions<
-        Awaited<
-          ReturnType<
-            typeof askUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPost
-          >
-        >,
-        TError,
-        { boardId: string; data: GatewayMainAskUserRequest },
-        TContext
-      >;
-      request?: SecondParameter<typeof customFetch>;
+export type agentMainMessageBoardLeadResponse200 = {
+  data: GatewayLeadMessageResponse;
+  status: 200;
+};
+
+export type agentMainMessageBoardLeadResponse403 = {
+  data: LLMErrorResponse;
+  status: 403;
+};
+
+export type agentMainMessageBoardLeadResponse404 = {
+  data: LLMErrorResponse;
+  status: 404;
+};
+
+export type agentMainMessageBoardLeadResponse422 = {
+  data: LLMErrorResponse;
+  status: 422;
+};
+
+export type agentMainMessageBoardLeadResponse502 = {
+  data: LLMErrorResponse;
+  status: 502;
+};
+
+export type agentMainMessageBoardLeadResponseSuccess =
+  agentMainMessageBoardLeadResponse200 & {
+    headers: Headers;
+  };
+export type agentMainMessageBoardLeadResponseError = (
+  | agentMainMessageBoardLeadResponse403
+  | agentMainMessageBoardLeadResponse404
+  | agentMainMessageBoardLeadResponse422
+  | agentMainMessageBoardLeadResponse502
+) & {
+  headers: Headers;
+};
+
+export type agentMainMessageBoardLeadResponse =
+  | agentMainMessageBoardLeadResponseSuccess
+  | agentMainMessageBoardLeadResponseError;
+
+export const getAgentMainMessageBoardLeadUrl = (boardId: string) => {
+  return `/api/v1/agent/gateway/boards/${boardId}/lead/message`;
+};
+
+export const agentMainMessageBoardLead = async (
+  boardId: string,
+  gatewayLeadMessageRequest: GatewayLeadMessageRequest,
+  options?: RequestInit,
+): Promise<agentMainMessageBoardLeadResponse> => {
+  return customFetch<agentMainMessageBoardLeadResponse>(
+    getAgentMainMessageBoardLeadUrl(boardId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(gatewayLeadMessageRequest),
     },
-    queryClient?: QueryClient,
-  ): UseMutationResult<
-    Awaited<
-      ReturnType<
-        typeof askUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPost
-      >
-    >,
+  );
+};
+
+export const getAgentMainMessageBoardLeadMutationOptions = <
+  TError = LLMErrorResponse,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof agentMainMessageBoardLead>>,
     TError,
-    { boardId: string; data: GatewayMainAskUserRequest },
+    { boardId: string; data: GatewayLeadMessageRequest },
     TContext
-  > => {
-    return useMutation(
-      getAskUserViaGatewayMainApiV1AgentBoardsBoardIdGatewayMainAskUserPostMutationOptions(
-        options,
-      ),
-      queryClient,
-    );
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof agentMainMessageBoardLead>>,
+  TError,
+  { boardId: string; data: GatewayLeadMessageRequest },
+  TContext
+> => {
+  const mutationKey = ["agentMainMessageBoardLead"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof agentMainMessageBoardLead>>,
+    { boardId: string; data: GatewayLeadMessageRequest }
+  > = (props) => {
+    const { boardId, data } = props ?? {};
+
+    return agentMainMessageBoardLead(boardId, data, requestOptions);
   };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AgentMainMessageBoardLeadMutationResult = NonNullable<
+  Awaited<ReturnType<typeof agentMainMessageBoardLead>>
+>;
+export type AgentMainMessageBoardLeadMutationBody = GatewayLeadMessageRequest;
+export type AgentMainMessageBoardLeadMutationError = LLMErrorResponse;
+
 /**
- * Send a gateway-main message to a single board lead agent.
- * @summary Message Gateway Board Lead
+ * @summary Message board lead via gateway-main
  */
-export type messageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePostResponse200 =
-  {
-    data: GatewayLeadMessageResponse;
-    status: 200;
-  };
-
-export type messageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePostResponse422 =
-  {
-    data: HTTPValidationError;
-    status: 422;
-  };
-
-export type messageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePostResponseSuccess =
-  messageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePostResponse200 & {
-    headers: Headers;
-  };
-export type messageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePostResponseError =
-  messageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePostResponse422 & {
-    headers: Headers;
-  };
-
-export type messageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePostResponse =
-
-    | messageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePostResponseSuccess
-    | messageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePostResponseError;
-
-export const getMessageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePostUrl =
-  (boardId: string) => {
-    return `/api/v1/agent/gateway/boards/${boardId}/lead/message`;
-  };
-
-export const messageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePost =
-  async (
-    boardId: string,
-    gatewayLeadMessageRequest: GatewayLeadMessageRequest,
-    options?: RequestInit,
-  ): Promise<messageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePostResponse> => {
-    return customFetch<messageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePostResponse>(
-      getMessageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePostUrl(
-        boardId,
-      ),
-      {
-        ...options,
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...options?.headers },
-        body: JSON.stringify(gatewayLeadMessageRequest),
-      },
-    );
-  };
-
-export const getMessageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePostMutationOptions =
-  <TError = HTTPValidationError, TContext = unknown>(options?: {
+export const useAgentMainMessageBoardLead = <
+  TError = LLMErrorResponse,
+  TContext = unknown,
+>(
+  options?: {
     mutation?: UseMutationOptions<
-      Awaited<
-        ReturnType<
-          typeof messageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePost
-        >
-      >,
+      Awaited<ReturnType<typeof agentMainMessageBoardLead>>,
       TError,
       { boardId: string; data: GatewayLeadMessageRequest },
       TContext
     >;
     request?: SecondParameter<typeof customFetch>;
-  }): UseMutationOptions<
-    Awaited<
-      ReturnType<
-        typeof messageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePost
-      >
-    >,
-    TError,
-    { boardId: string; data: GatewayLeadMessageRequest },
-    TContext
-  > => {
-    const mutationKey = [
-      "messageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePost",
-    ];
-    const { mutation: mutationOptions, request: requestOptions } = options
-      ? options.mutation &&
-        "mutationKey" in options.mutation &&
-        options.mutation.mutationKey
-        ? options
-        : { ...options, mutation: { ...options.mutation, mutationKey } }
-      : { mutation: { mutationKey }, request: undefined };
-
-    const mutationFn: MutationFunction<
-      Awaited<
-        ReturnType<
-          typeof messageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePost
-        >
-      >,
-      { boardId: string; data: GatewayLeadMessageRequest }
-    > = (props) => {
-      const { boardId, data } = props ?? {};
-
-      return messageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePost(
-        boardId,
-        data,
-        requestOptions,
-      );
-    };
-
-    return { mutationFn, ...mutationOptions };
-  };
-
-export type MessageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePostMutationResult =
-  NonNullable<
-    Awaited<
-      ReturnType<
-        typeof messageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePost
-      >
-    >
-  >;
-export type MessageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePostMutationBody =
-  GatewayLeadMessageRequest;
-export type MessageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePostMutationError =
-  HTTPValidationError;
-
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof agentMainMessageBoardLead>>,
+  TError,
+  { boardId: string; data: GatewayLeadMessageRequest },
+  TContext
+> => {
+  return useMutation(
+    getAgentMainMessageBoardLeadMutationOptions(options),
+    queryClient,
+  );
+};
 /**
- * @summary Message Gateway Board Lead
+ * Send a shared coordination request to multiple board leads.
+
+Use for urgent cross-board or multi-lead fan-out patterns.
+ * @summary Broadcast a message to board leads via gateway-main
  */
-export const useMessageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePost =
-  <TError = HTTPValidationError, TContext = unknown>(
-    options?: {
-      mutation?: UseMutationOptions<
-        Awaited<
-          ReturnType<
-            typeof messageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePost
-          >
-        >,
-        TError,
-        { boardId: string; data: GatewayLeadMessageRequest },
-        TContext
-      >;
-      request?: SecondParameter<typeof customFetch>;
+export type agentMainBroadcastLeadMessageResponse200 = {
+  data: GatewayLeadBroadcastResponse;
+  status: 200;
+};
+
+export type agentMainBroadcastLeadMessageResponse403 = {
+  data: LLMErrorResponse;
+  status: 403;
+};
+
+export type agentMainBroadcastLeadMessageResponse404 = {
+  data: LLMErrorResponse;
+  status: 404;
+};
+
+export type agentMainBroadcastLeadMessageResponse422 = {
+  data: LLMErrorResponse;
+  status: 422;
+};
+
+export type agentMainBroadcastLeadMessageResponse502 = {
+  data: LLMErrorResponse;
+  status: 502;
+};
+
+export type agentMainBroadcastLeadMessageResponseSuccess =
+  agentMainBroadcastLeadMessageResponse200 & {
+    headers: Headers;
+  };
+export type agentMainBroadcastLeadMessageResponseError = (
+  | agentMainBroadcastLeadMessageResponse403
+  | agentMainBroadcastLeadMessageResponse404
+  | agentMainBroadcastLeadMessageResponse422
+  | agentMainBroadcastLeadMessageResponse502
+) & {
+  headers: Headers;
+};
+
+export type agentMainBroadcastLeadMessageResponse =
+  | agentMainBroadcastLeadMessageResponseSuccess
+  | agentMainBroadcastLeadMessageResponseError;
+
+export const getAgentMainBroadcastLeadMessageUrl = () => {
+  return `/api/v1/agent/gateway/leads/broadcast`;
+};
+
+export const agentMainBroadcastLeadMessage = async (
+  gatewayLeadBroadcastRequest: GatewayLeadBroadcastRequest,
+  options?: RequestInit,
+): Promise<agentMainBroadcastLeadMessageResponse> => {
+  return customFetch<agentMainBroadcastLeadMessageResponse>(
+    getAgentMainBroadcastLeadMessageUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(gatewayLeadBroadcastRequest),
     },
-    queryClient?: QueryClient,
-  ): UseMutationResult<
-    Awaited<
-      ReturnType<
-        typeof messageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePost
-      >
-    >,
+  );
+};
+
+export const getAgentMainBroadcastLeadMessageMutationOptions = <
+  TError = LLMErrorResponse,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof agentMainBroadcastLeadMessage>>,
     TError,
-    { boardId: string; data: GatewayLeadMessageRequest },
+    { data: GatewayLeadBroadcastRequest },
     TContext
-  > => {
-    return useMutation(
-      getMessageGatewayBoardLeadApiV1AgentGatewayBoardsBoardIdLeadMessagePostMutationOptions(
-        options,
-      ),
-      queryClient,
-    );
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof agentMainBroadcastLeadMessage>>,
+  TError,
+  { data: GatewayLeadBroadcastRequest },
+  TContext
+> => {
+  const mutationKey = ["agentMainBroadcastLeadMessage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof agentMainBroadcastLeadMessage>>,
+    { data: GatewayLeadBroadcastRequest }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return agentMainBroadcastLeadMessage(data, requestOptions);
   };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AgentMainBroadcastLeadMessageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof agentMainBroadcastLeadMessage>>
+>;
+export type AgentMainBroadcastLeadMessageMutationBody =
+  GatewayLeadBroadcastRequest;
+export type AgentMainBroadcastLeadMessageMutationError = LLMErrorResponse;
+
 /**
- * Broadcast a gateway-main message to multiple board leads.
- * @summary Broadcast Gateway Lead Message
+ * @summary Broadcast a message to board leads via gateway-main
  */
-export type broadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPostResponse200 =
-  {
-    data: GatewayLeadBroadcastResponse;
-    status: 200;
-  };
-
-export type broadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPostResponse422 =
-  {
-    data: HTTPValidationError;
-    status: 422;
-  };
-
-export type broadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPostResponseSuccess =
-  broadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPostResponse200 & {
-    headers: Headers;
-  };
-export type broadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPostResponseError =
-  broadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPostResponse422 & {
-    headers: Headers;
-  };
-
-export type broadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPostResponse =
-
-    | broadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPostResponseSuccess
-    | broadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPostResponseError;
-
-export const getBroadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPostUrl =
-  () => {
-    return `/api/v1/agent/gateway/leads/broadcast`;
-  };
-
-export const broadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPost =
-  async (
-    gatewayLeadBroadcastRequest: GatewayLeadBroadcastRequest,
-    options?: RequestInit,
-  ): Promise<broadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPostResponse> => {
-    return customFetch<broadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPostResponse>(
-      getBroadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPostUrl(),
-      {
-        ...options,
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...options?.headers },
-        body: JSON.stringify(gatewayLeadBroadcastRequest),
-      },
-    );
-  };
-
-export const getBroadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPostMutationOptions =
-  <TError = HTTPValidationError, TContext = unknown>(options?: {
+export const useAgentMainBroadcastLeadMessage = <
+  TError = LLMErrorResponse,
+  TContext = unknown,
+>(
+  options?: {
     mutation?: UseMutationOptions<
-      Awaited<
-        ReturnType<
-          typeof broadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPost
-        >
-      >,
+      Awaited<ReturnType<typeof agentMainBroadcastLeadMessage>>,
       TError,
       { data: GatewayLeadBroadcastRequest },
       TContext
     >;
     request?: SecondParameter<typeof customFetch>;
-  }): UseMutationOptions<
-    Awaited<
-      ReturnType<
-        typeof broadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPost
-      >
-    >,
-    TError,
-    { data: GatewayLeadBroadcastRequest },
-    TContext
-  > => {
-    const mutationKey = [
-      "broadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPost",
-    ];
-    const { mutation: mutationOptions, request: requestOptions } = options
-      ? options.mutation &&
-        "mutationKey" in options.mutation &&
-        options.mutation.mutationKey
-        ? options
-        : { ...options, mutation: { ...options.mutation, mutationKey } }
-      : { mutation: { mutationKey }, request: undefined };
-
-    const mutationFn: MutationFunction<
-      Awaited<
-        ReturnType<
-          typeof broadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPost
-        >
-      >,
-      { data: GatewayLeadBroadcastRequest }
-    > = (props) => {
-      const { data } = props ?? {};
-
-      return broadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPost(
-        data,
-        requestOptions,
-      );
-    };
-
-    return { mutationFn, ...mutationOptions };
-  };
-
-export type BroadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPostMutationResult =
-  NonNullable<
-    Awaited<
-      ReturnType<
-        typeof broadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPost
-      >
-    >
-  >;
-export type BroadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPostMutationBody =
-  GatewayLeadBroadcastRequest;
-export type BroadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPostMutationError =
-  HTTPValidationError;
-
-/**
- * @summary Broadcast Gateway Lead Message
- */
-export const useBroadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPost =
-  <TError = HTTPValidationError, TContext = unknown>(
-    options?: {
-      mutation?: UseMutationOptions<
-        Awaited<
-          ReturnType<
-            typeof broadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPost
-          >
-        >,
-        TError,
-        { data: GatewayLeadBroadcastRequest },
-        TContext
-      >;
-      request?: SecondParameter<typeof customFetch>;
-    },
-    queryClient?: QueryClient,
-  ): UseMutationResult<
-    Awaited<
-      ReturnType<
-        typeof broadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPost
-      >
-    >,
-    TError,
-    { data: GatewayLeadBroadcastRequest },
-    TContext
-  > => {
-    return useMutation(
-      getBroadcastGatewayLeadMessageApiV1AgentGatewayLeadsBroadcastPostMutationOptions(
-        options,
-      ),
-      queryClient,
-    );
-  };
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof agentMainBroadcastLeadMessage>>,
+  TError,
+  { data: GatewayLeadBroadcastRequest },
+  TContext
+> => {
+  return useMutation(
+    getAgentMainBroadcastLeadMessageMutationOptions(options),
+    queryClient,
+  );
+};

@@ -184,7 +184,7 @@ class GatewayCoordinationService(AbstractGatewayMessagingService):
         target = await self._board_agent_or_404(board=board, agent_id=target_agent_id)
         if not target.openclaw_session_id:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Target agent has no session key",
             )
         _gateway, config = await GatewayDispatchService(
@@ -335,7 +335,7 @@ class GatewayCoordinationService(AbstractGatewayMessagingService):
         normalized_content = content.strip()
         if not normalized_content:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="content is required",
             )
 
@@ -541,7 +541,7 @@ class GatewayCoordinationService(AbstractGatewayMessagingService):
         )
         if not lead.openclaw_session_id:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Lead agent has no session key",
             )
         await self._dispatch_gateway_message(

@@ -28,11 +28,16 @@ def gateway_client_config(gateway: Gateway) -> GatewayClientConfig:
     url = (gateway.url or "").strip()
     if not url:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Gateway url is required",
         )
     token = (gateway.token or "").strip() or None
-    return GatewayClientConfig(url=url, token=token)
+    return GatewayClientConfig(
+        url=url,
+        token=token,
+        allow_insecure_tls=gateway.allow_insecure_tls,
+        disable_device_pairing=gateway.disable_device_pairing,
+    )
 
 
 def optional_gateway_client_config(gateway: Gateway | None) -> GatewayClientConfig | None:
@@ -43,7 +48,12 @@ def optional_gateway_client_config(gateway: Gateway | None) -> GatewayClientConf
     if not url:
         return None
     token = (gateway.token or "").strip() or None
-    return GatewayClientConfig(url=url, token=token)
+    return GatewayClientConfig(
+        url=url,
+        token=token,
+        allow_insecure_tls=gateway.allow_insecure_tls,
+        disable_device_pairing=gateway.disable_device_pairing,
+    )
 
 
 def require_gateway_workspace_root(gateway: Gateway) -> str:
@@ -51,7 +61,7 @@ def require_gateway_workspace_root(gateway: Gateway) -> str:
     workspace_root = (gateway.workspace_root or "").strip()
     if not workspace_root:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Gateway workspace_root is required",
         )
     return workspace_root
@@ -82,13 +92,13 @@ async def require_gateway_for_board(
     """Return a board's gateway or raise a 422 with a stable error message."""
     if board.gateway_id is None:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Board gateway_id is required",
         )
     gateway = await get_gateway_for_board(session, board)
     if gateway is None:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Board gateway_id is invalid",
         )
     if require_workspace_root:

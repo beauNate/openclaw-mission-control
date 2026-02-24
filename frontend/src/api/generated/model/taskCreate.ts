@@ -4,6 +4,7 @@
  * Mission Control API
  * OpenAPI spec version: 0.1.0
  */
+import type { TaskCreateCustomFieldValues } from "./taskCreateCustomFieldValues";
 import type { TaskCreateStatus } from "./taskCreateStatus";
 
 /**
@@ -19,4 +20,5 @@ export interface TaskCreate {
   depends_on_task_ids?: string[];
   tag_ids?: string[];
   created_by_user_id?: string | null;
+  custom_field_values?: TaskCreateCustomFieldValues;
 }

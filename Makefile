@@ -55,10 +55,10 @@ frontend-format-check: frontend-tooling ## Check frontend formatting (prettier)
 	$(NODE_WRAP) --cwd $(FRONTEND_DIR) npx prettier --check "src/**/*.{ts,tsx,js,jsx,json,css,md}" "*.{ts,js,json,md,mdx}"
 
 .PHONY: lint
-lint: backend-lint frontend-lint ## Lint backend + frontend
+lint: backend-lint frontend-lint docs-lint ## Lint backend + frontend + docs
 
 .PHONY: backend-lint
-backend-lint: ## Lint backend (flake8)
+backend-lint: backend-format-check backend-typecheck ## Lint backend (isort/black checks + flake8 + mypy)
 	cd $(BACKEND_DIR) && uv run flake8 --config .flake8
 
 .PHONY: frontend-lint
@@ -104,6 +104,33 @@ frontend-test: frontend-tooling ## Frontend tests (vitest)
 backend-migrate: ## Apply backend DB migrations (uses backend/migrations)
 	cd $(BACKEND_DIR) && uv run alembic upgrade head
 
+.PHONY: backend-migration-check
+backend-migration-check: ## Validate migration graph + reversible path on clean Postgres
+	@set -euo pipefail; \
+	(cd $(BACKEND_DIR) && uv run python scripts/check_migration_graph.py); \
+	CONTAINER_NAME="mc-migration-check-$$RANDOM"; \
+	docker run -d --rm --name $$CONTAINER_NAME -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=migration_ci -p 55432:5432 postgres:16 >/dev/null; \
+	cleanup() { docker rm -f $$CONTAINER_NAME >/dev/null 2>&1 || true; }; \
+	trap cleanup EXIT; \
+	for i in $$(seq 1 30); do \
+		if docker exec $$CONTAINER_NAME pg_isready -U postgres -d migration_ci >/dev/null 2>&1; then break; fi; \
+		sleep 1; \
+		if [ $$i -eq 30 ]; then echo "Postgres did not become ready"; exit 1; fi; \
+	done; \
+	cd $(BACKEND_DIR) && \
+		AUTH_MODE=local \
+		LOCAL_AUTH_TOKEN=ci-local-token-ci-local-token-ci-local-token-ci-local-token \
+		DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:55432/migration_ci \
+		uv run alembic upgrade head && \
+		AUTH_MODE=local \
+		LOCAL_AUTH_TOKEN=ci-local-token-ci-local-token-ci-local-token-ci-local-token \
+		DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:55432/migration_ci \
+		uv run alembic downgrade base && \
+		AUTH_MODE=local \
+		LOCAL_AUTH_TOKEN=ci-local-token-ci-local-token-ci-local-token-ci-local-token \
+		DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:55432/migration_ci \
+		uv run alembic upgrade head
+
 .PHONY: build
 build: frontend-build ## Build artifacts
 
@@ -115,10 +142,26 @@ frontend-build: frontend-tooling ## Build frontend (next build)
 api-gen: frontend-tooling ## Regenerate TS API client (requires backend running at 127.0.0.1:8000)
 	$(NODE_WRAP) --cwd $(FRONTEND_DIR) npm run api:gen
 
+.PHONY: rq-worker
+rq-worker: ## Run background queue worker loop
+	cd $(BACKEND_DIR) && uv run python ../scripts/rq worker
+
 .PHONY: backend-templates-sync
-backend-templates-sync: ## Sync templates to existing gateway agents (usage: make backend-templates-sync GATEWAY_ID=<uuid> SYNC_ARGS="--reset-sessions")
+backend-templates-sync: ## Sync templates to existing gateway agents (usage: make backend-templates-sync GATEWAY_ID=<uuid> SYNC_ARGS="--reset-sessions --overwrite")
 	@if [ -z "$(GATEWAY_ID)" ]; then echo "GATEWAY_ID is required (uuid)"; exit 1; fi
 	cd $(BACKEND_DIR) && uv run python scripts/sync_gateway_templates.py --gateway-id "$(GATEWAY_ID)" $(SYNC_ARGS)
 
 .PHONY: check
 check: lint typecheck backend-coverage frontend-test build ## Run lint + typecheck + tests + coverage + build
+
+
+.PHONY: docs-lint
+docs-lint: frontend-tooling ## Lint markdown files (tiny ruleset; avoids noisy churn)
+	$(NODE_WRAP) npx markdownlint-cli2@0.15.0 --config .markdownlint-cli2.yaml "**/*.md"
+
+.PHONY: docs-link-check
+docs-link-check: ## Check for broken relative links in markdown docs
+	python scripts/check_markdown_links.py
+
+.PHONY: docs-check
+docs-check: docs-lint docs-link-check ## Run all docs quality gates

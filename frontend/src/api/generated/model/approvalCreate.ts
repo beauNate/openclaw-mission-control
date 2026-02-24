@@ -16,8 +16,13 @@ export interface ApprovalCreate {
   task_id?: string | null;
   task_ids?: string[];
   payload?: ApprovalCreatePayload;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
   confidence: number;
   rubric_scores?: ApprovalCreateRubricScores;
   status?: ApprovalCreateStatus;
   agent_id?: string | null;
+  lead_reasoning?: string | null;
 }

@@ -40,6 +40,12 @@ function useChart() {
   return context;
 }
 
+/**
+ * Recharts wrapper that:
+ * - Provides a shared `ChartConfig` via context (labels/icons/colors)
+ * - Exposes a small legend state (hide/toggle series)
+ * - Injects CSS variables (`--color-*`) scoped to this chart instance
+ */
 function ChartContainer({
   id,
   className,
@@ -108,6 +114,10 @@ function ChartContainer({
   );
 }
 
+/**
+ * Emits scoped theme-aware CSS variables so Recharts series can use
+ * `var(--color-<key>)` without hardcoding colors in every chart.
+ */
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
     ([, config]) => config.theme || config.color,

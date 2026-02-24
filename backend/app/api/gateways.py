@@ -15,6 +15,7 @@ from app.db.pagination import paginate
 from app.db.session import get_session
 from app.models.agents import Agent
 from app.models.gateways import Gateway
+from app.models.skills import GatewayInstalledSkill
 from app.schemas.common import OkResponse
 from app.schemas.gateways import (
     GatewayCreate,
@@ -40,6 +41,8 @@ INCLUDE_MAIN_QUERY = Query(default=True)
 RESET_SESSIONS_QUERY = Query(default=False)
 ROTATE_TOKENS_QUERY = Query(default=False)
 FORCE_BOOTSTRAP_QUERY = Query(default=False)
+OVERWRITE_QUERY = Query(default=False)
+LEAD_ONLY_QUERY = Query(default=False)
 BOARD_ID_QUERY = Query(default=None)
 _RUNTIME_TYPE_REFERENCES = (UUID,)
 
@@ -47,16 +50,20 @@ _RUNTIME_TYPE_REFERENCES = (UUID,)
 def _template_sync_query(
     *,
     include_main: bool = INCLUDE_MAIN_QUERY,
+    lead_only: bool = LEAD_ONLY_QUERY,
     reset_sessions: bool = RESET_SESSIONS_QUERY,
     rotate_tokens: bool = ROTATE_TOKENS_QUERY,
     force_bootstrap: bool = FORCE_BOOTSTRAP_QUERY,
+    overwrite: bool = OVERWRITE_QUERY,
     board_id: UUID | None = BOARD_ID_QUERY,
 ) -> GatewayTemplateSyncQuery:
     return GatewayTemplateSyncQuery(
         include_main=include_main,
+        lead_only=lead_only,
         reset_sessions=reset_sessions,
         rotate_tokens=rotate_tokens,
         force_bootstrap=force_bootstrap,
+        overwrite=overwrite,
         board_id=board_id,
     )
 
@@ -87,6 +94,12 @@ async def create_gateway(
 ) -> Gateway:
     """Create a gateway and provision or refresh its main agent."""
     service = GatewayAdminLifecycleService(session)
+    await service.assert_gateway_runtime_compatible(
+        url=payload.url,
+        token=payload.token,
+        allow_insecure_tls=payload.allow_insecure_tls,
+        disable_device_pairing=payload.disable_device_pairing,
+    )
     data = payload.model_dump()
     gateway_id = uuid4()
     data["id"] = gateway_id
@@ -126,6 +139,28 @@ async def update_gateway(
         organization_id=ctx.organization.id,
     )
     updates = payload.model_dump(exclude_unset=True)
+    if (
+        "url" in updates
+        or "token" in updates
+        or "allow_insecure_tls" in updates
+        or "disable_device_pairing" in updates
+    ):
+        raw_next_url = updates.get("url", gateway.url)
+        next_url = raw_next_url.strip() if isinstance(raw_next_url, str) else ""
+        next_token = updates.get("token", gateway.token)
+        next_allow_insecure_tls = bool(
+            updates.get("allow_insecure_tls", gateway.allow_insecure_tls),
+        )
+        next_disable_device_pairing = bool(
+            updates.get("disable_device_pairing", gateway.disable_device_pairing),
+        )
+        if next_url:
+            await service.assert_gateway_runtime_compatible(
+                url=next_url,
+                token=next_token,
+                allow_insecure_tls=next_allow_insecure_tls,
+                disable_device_pairing=next_disable_device_pairing,
+            )
     await crud.patch(session, gateway, updates)
     await service.ensure_main_agent(gateway, auth, action="update")
     return gateway
@@ -174,6 +209,15 @@ async def delete_gateway(
             continue
         await service.clear_agent_foreign_keys(agent_id=agent.id)
         await session.delete(agent)
+
+    # NOTE: The migration declares `ondelete="CASCADE"` for gateway_installed_skills.gateway_id,
+    # but some backends/test environments (e.g. SQLite without FK pragma) may not
+    # enforce cascades. Delete rows explicitly to guarantee cleanup semantics.
+    installed_skills = await GatewayInstalledSkill.objects.filter_by(
+        gateway_id=gateway.id,
+    ).all(session)
+    for installed_skill in installed_skills:
+        await session.delete(installed_skill)
 
     await session.delete(gateway)
     await session.commit()

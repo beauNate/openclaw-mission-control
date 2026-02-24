@@ -6,7 +6,8 @@ import asyncio
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from enum import Enum
+from typing import TYPE_CHECKING, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -68,6 +69,48 @@ ACTOR_DEP = Depends(require_admin_or_agent)
 IS_CHAT_QUERY = Query(default=None)
 SINCE_QUERY = Query(default=None)
 _RUNTIME_TYPE_REFERENCES = (UUID,)
+AGENT_BOARD_ROLE_TAGS = cast("list[str | Enum]", ["agent-lead", "agent-worker"])
+
+
+def _agent_group_memory_openapi_hints(
+    *,
+    intent: str,
+    when_to_use: list[str],
+    routing_examples: list[dict[str, object]],
+    required_actor: str = "any_agent",
+    when_not_to_use: list[str] | None = None,
+    routing_policy: list[str] | None = None,
+    negative_guidance: list[str] | None = None,
+    prerequisites: list[str] | None = None,
+    side_effects: list[str] | None = None,
+) -> dict[str, object]:
+    return {
+        "x-llm-intent": intent,
+        "x-when-to-use": when_to_use,
+        "x-when-not-to-use": when_not_to_use
+        or [
+            "Use a more specific endpoint when targeting a single actor or broadcast scope.",
+        ],
+        "x-required-actor": required_actor,
+        "x-prerequisites": prerequisites
+        or [
+            "Authenticated actor token",
+            "Accessible board context",
+        ],
+        "x-side-effects": side_effects
+        or ["Persisted memory visibility changes may be observable across linked boards."],
+        "x-negative-guidance": negative_guidance
+        or [
+            "Do not use as a replacement for direct task-specific commentary.",
+            "Do not assume infinite retention when group storage policies apply.",
+        ],
+        "x-routing-policy": routing_policy
+        or [
+            "Use when board context requires shared memory discovery or posting.",
+            "Prefer narrow board endpoints for one-off lead/agent coordination needs.",
+        ],
+        "x-routing-policy-examples": routing_examples,
+    }
 
 
 def _parse_since(value: str | None) -> datetime | None:
@@ -402,14 +445,42 @@ async def create_board_group_memory(
     return memory
 
 
-@board_router.get("", response_model=DefaultLimitOffsetPage[BoardGroupMemoryRead])
+@board_router.get(
+    "",
+    response_model=DefaultLimitOffsetPage[BoardGroupMemoryRead],
+    tags=AGENT_BOARD_ROLE_TAGS,
+    openapi_extra=_agent_group_memory_openapi_hints(
+        intent="agent_board_group_memory_discovery",
+        when_to_use=[
+            "Inspect shared group memory for cross-board context before making decisions.",
+            "Collect active chat snapshots for a linked group before coordination actions.",
+        ],
+        routing_examples=[
+            {
+                "input": {
+                    "intent": "recover recent team memory for task framing",
+                    "required_privilege": "agent_lead_or_worker",
+                },
+                "decision": "agent_board_group_memory_discovery",
+            }
+        ],
+        side_effects=["No persisted side effects."],
+        routing_policy=[
+            "Use as a shared-context discovery step before decisioning.",
+            "Use board-specific memory endpoints for direct board persistence updates.",
+        ],
+    ),
+)
 async def list_board_group_memory_for_board(
     *,
     is_chat: bool | None = IS_CHAT_QUERY,
     board: Board = BOARD_READ_DEP,
     session: AsyncSession = SESSION_DEP,
 ) -> LimitOffsetPage[BoardGroupMemoryRead]:
-    """List memory entries for the board's linked group."""
+    """List shared memory for the board's linked group.
+
+    Use this for cross-board context and coordination signals.
+    """
     group_id = board.board_group_id
     if group_id is None:
         return await paginate(session, BoardGroupMemory.objects.by_ids([]).statement)
@@ -426,7 +497,31 @@ async def list_board_group_memory_for_board(
     return await paginate(session, queryset.statement)
 
 
-@board_router.get("/stream")
+@board_router.get(
+    "/stream",
+    tags=AGENT_BOARD_ROLE_TAGS,
+    openapi_extra=_agent_group_memory_openapi_hints(
+        intent="agent_board_group_memory_stream",
+        when_to_use=[
+            "Track shared group memory updates in near-real-time for live coordination.",
+            "React to newly added group messages without polling.",
+        ],
+        routing_examples=[
+            {
+                "input": {
+                    "intent": "subscribe to group memory updates for routing",
+                    "required_privilege": "agent_lead_or_worker",
+                },
+                "decision": "agent_board_group_memory_stream",
+            }
+        ],
+        side_effects=["No persisted side effects, streaming updates are read-only."],
+        routing_policy=[
+            "Use when coordinated decisions need continuous group context.",
+            "Prefer bounded history reads when a snapshot is sufficient.",
+        ],
+    ),
+)
 async def stream_board_group_memory_for_board(
     request: Request,
     *,
@@ -434,7 +529,7 @@ async def stream_board_group_memory_for_board(
     since: str | None = SINCE_QUERY,
     is_chat: bool | None = IS_CHAT_QUERY,
 ) -> EventSourceResponse:
-    """Stream memory entries for the board's linked group."""
+    """Stream linked-group memory via SSE for near-real-time coordination."""
     group_id = board.board_group_id
     since_dt = _parse_since(since) or utcnow()
     last_seen = since_dt
@@ -463,18 +558,49 @@ async def stream_board_group_memory_for_board(
     return EventSourceResponse(event_generator(), ping=15)
 
 
-@board_router.post("", response_model=BoardGroupMemoryRead)
+@board_router.post(
+    "",
+    response_model=BoardGroupMemoryRead,
+    tags=AGENT_BOARD_ROLE_TAGS,
+    openapi_extra=_agent_group_memory_openapi_hints(
+        intent="agent_board_group_memory_record",
+        when_to_use=[
+            "Persist shared group memory for a linked group from board context.",
+            "Broadcast updates/messages to group-linked agents when chat or mention intent is present.",
+        ],
+        routing_examples=[
+            {
+                "input": {
+                    "intent": "share coordination signal in group memory",
+                    "required_privilege": "board_agent",
+                },
+                "decision": "agent_board_group_memory_record",
+            }
+        ],
+        side_effects=[
+            "Persist new group-memory entries with optional agent notification dispatch."
+        ],
+        routing_policy=[
+            "Use for shared memory writes that should be visible across linked boards.",
+            "Prefer direct board memory endpoints for board-local persistence.",
+        ],
+    ),
+)
 async def create_board_group_memory_for_board(
     payload: BoardGroupMemoryCreate,
     board: Board = BOARD_WRITE_DEP,
     session: AsyncSession = SESSION_DEP,
     actor: ActorContext = ACTOR_DEP,
 ) -> BoardGroupMemory:
-    """Create a group memory entry from a board context and notify recipients."""
+    """Create shared group memory from a board context.
+
+    When tags/mentions indicate chat or broadcast intent, eligible agents in the
+    linked group are notified.
+    """
     group_id = board.board_group_id
     if group_id is None:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Board is not in a board group",
         )
     group = await BoardGroup.objects.by_id(group_id).first(session)

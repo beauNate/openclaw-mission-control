@@ -11,6 +11,7 @@ import pytest
 from fastapi import HTTPException, status
 
 import app.services.openclaw.provisioning_db as agent_service
+from app.models.board_webhooks import BoardWebhook
 from app.services.openclaw.gateway_rpc import GatewayConfig as GatewayClientConfig
 
 
@@ -50,6 +51,8 @@ class _GatewayStub:
     url: str
     token: str | None
     workspace_root: str
+    allow_insecure_tls: bool = False
+    disable_device_pairing: bool = False
 
 
 @pytest.mark.asyncio
@@ -110,7 +113,10 @@ async def test_delete_agent_as_lead_removes_board_agent(
         _ = (_self, agent, gateway, delete_files, delete_session)
         return None
 
-    async def _fake_update_where(*_args, **_kwargs) -> None:
+    update_models: list[type[object]] = []
+
+    async def _fake_update_where(_session, model, *_args, **_kwargs) -> None:
+        update_models.append(model)
         return None
 
     monkeypatch.setattr(service, "require_board", _fake_require_board)
@@ -130,6 +136,7 @@ async def test_delete_agent_as_lead_removes_board_agent(
 
     assert result.ok is True
     assert session.deleted and session.deleted[0] == target
+    assert BoardWebhook in update_models
 
 
 @pytest.mark.asyncio

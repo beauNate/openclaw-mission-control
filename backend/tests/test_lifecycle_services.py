@@ -101,7 +101,7 @@ async def test_gateway_coordination_nudge_success(monkeypatch: pytest.MonkeyPatc
         board=board,  # type: ignore[arg-type]
         actor_agent=actor,  # type: ignore[arg-type]
         target_agent_id=str(target.id),
-        message="Please run BOOT.md",
+        message="Please run session startup checklist",
         correlation_id="nudge-corr-id",
     )
 
@@ -169,7 +169,7 @@ async def test_gateway_coordination_nudge_maps_gateway_error(
             board=board,  # type: ignore[arg-type]
             actor_agent=actor,  # type: ignore[arg-type]
             target_agent_id=str(target.id),
-            message="Please run BOOT.md",
+            message="Please run session startup checklist",
             correlation_id="nudge-corr-id",
         )
 

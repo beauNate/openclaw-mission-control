@@ -27,6 +27,7 @@ class Task(TenantScoped, table=True):
     priority: str = Field(default="medium", index=True)
     due_at: datetime | None = None
     in_progress_at: datetime | None = None
+    previous_in_progress_at: datetime | None = None
 
     created_by_user_id: UUID | None = Field(
         default=None,

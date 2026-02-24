@@ -160,7 +160,7 @@ async def get_board_group_snapshot(
         write=False,
     )
     if per_board_task_limit < 0:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
     snapshot = await build_group_snapshot(
         session,
         group=group,
@@ -235,10 +235,7 @@ def _update_agent_heartbeat(
     if isinstance(raw, dict):
         heartbeat.update(raw)
     heartbeat["every"] = payload.every
-    if payload.target is not None:
-        heartbeat["target"] = payload.target
-    elif "target" not in heartbeat:
-        heartbeat["target"] = DEFAULT_HEARTBEAT_CONFIG.get("target", "none")
+    heartbeat["target"] = DEFAULT_HEARTBEAT_CONFIG.get("target", "last")
     agent.heartbeat_config = heartbeat
     agent.updated_at = utcnow()
 

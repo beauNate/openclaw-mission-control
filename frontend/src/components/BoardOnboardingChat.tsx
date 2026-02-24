@@ -30,6 +30,12 @@ type NormalizedMessage = {
   content: string;
 };
 
+/**
+ * Normalize backend onboarding messages into a strict `{role, content}` list.
+ *
+ * The server stores messages as untyped JSON; this protects the UI from partial
+ * or malformed entries.
+ */
 const normalizeMessages = (
   value?: BoardOnboardingReadMessages,
 ): NormalizedMessage[] | null => {
@@ -59,6 +65,16 @@ const FREE_TEXT_OPTION_RE =
 
 const isFreeTextOption = (label: string) => FREE_TEXT_OPTION_RE.test(label);
 
+/**
+ * Best-effort parser for assistant-produced question payloads.
+ *
+ * During onboarding, the assistant can respond with either:
+ * - raw JSON (ideal)
+ * - a fenced ```json block
+ * - slightly-structured objects
+ *
+ * This function validates shape and normalizes option ids/labels.
+ */
 const normalizeQuestion = (value: unknown): Question | null => {
   if (!value || typeof value !== "object") return null;
   const data = value as { question?: unknown; options?: unknown };
@@ -90,6 +106,12 @@ const normalizeQuestion = (value: unknown): Question | null => {
   return { question: data.question, options };
 };
 
+/**
+ * Extract the most recent assistant question from the transcript.
+ *
+ * We intentionally only inspect the last assistant message: the user may have
+ * typed arbitrary text between questions.
+ */
 const parseQuestion = (messages?: NormalizedMessage[] | null) => {
   if (!messages?.length) return null;
   const lastAssistant = [...messages]
@@ -225,12 +247,17 @@ export function BoardOnboardingChat({
     void startSession();
   }, [startSession]);
 
+  const shouldPollSession =
+    isPageActive && (loading || isAwaitingAgent || (!question && !draft));
+
   useEffect(() => {
-    if (!isPageActive) return;
+    if (!shouldPollSession) return;
     void refreshSession();
-    const interval = setInterval(refreshSession, 2000);
+    const interval = setInterval(() => {
+      void refreshSession();
+    }, 2000);
     return () => clearInterval(interval);
-  }, [isPageActive, refreshSession]);
+  }, [refreshSession, shouldPollSession]);
 
   const handleAnswer = useCallback(
     async (value: string, freeText?: string) => {

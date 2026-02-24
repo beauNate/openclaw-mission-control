@@ -63,7 +63,7 @@ class OpenClawAuthorizationPolicy:
     def require_gateway_configured(gateway: Gateway) -> None:
         if not gateway.url:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Gateway url is required",
             )
 
