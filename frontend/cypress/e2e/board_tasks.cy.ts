@@ -284,6 +284,7 @@ describe("/boards/:id task board", () => {
     // Delete task via delete dialog.
     cy.get('[aria-label="Edit task"]').within(() => {
       cy.contains("button", /^Delete task$/)
+        .scrollIntoView()
         .should("be.visible")
         .and("not.be.disabled")
         .click();
@@ -291,6 +292,7 @@ describe("/boards/:id task board", () => {
     cy.get('[aria-label="Delete task"]').should("be.visible");
     cy.get('[aria-label="Delete task"]').within(() => {
       cy.contains("button", /^Delete task$/)
+        .scrollIntoView()
         .should("be.visible")
         .and("not.be.disabled")
         .click();
