@@ -259,6 +259,19 @@ async def _require_review_before_done_when_enabled(
         raise _review_required_for_done_error()
 
 
+async def _require_comment_for_review_when_enabled(
+    session: AsyncSession,
+    *,
+    board_id: UUID,
+) -> bool:
+    requires_comment = (
+        await session.exec(
+            select(col(Board.comment_required_for_review)).where(col(Board.id) == board_id),
+        )
+    ).first()
+    return bool(requires_comment)
+
+
 async def _require_no_pending_approval_for_status_change_when_enabled(
     session: AsyncSession,
     *,
@@ -2088,6 +2101,9 @@ async def _lead_apply_status(
     *,
     update: _TaskUpdateInput,
 ) -> None:
+    if update.actor.actor_type != "agent" or update.actor.agent is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    lead_agent = update.actor.agent
     if "status" not in update.updates:
         return
     if update.task.status != "review":
@@ -2112,7 +2128,7 @@ async def _lead_apply_status(
             session,
             task_id=update.task.id,
             board_id=update.board_id,
-            lead_agent_id=update.actor.agent.id,
+            lead_agent_id=lead_agent.id,
         )
         update.task.in_progress_at = None
     update.task.status = target_status
@@ -2581,9 +2597,12 @@ async def _finalize_updated_task(
     update.task.updated_at = utcnow()
 
     status_raw = update.updates.get("status")
-    # Entering review requires either a new comment or a valid recent one to
-    # ensure reviewers get context on readiness.
-    if status_raw == "review":
+    # Entering review can require a new comment or valid recent context when
+    # the board-level rule is enabled.
+    if status_raw == "review" and await _require_comment_for_review_when_enabled(
+        session,
+        board_id=update.board_id,
+    ):
         comment_text = (update.comment or "").strip()
         review_comment_author = update.task.assigned_agent_id or update.previous_assigned
         review_comment_since = (
