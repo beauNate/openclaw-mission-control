@@ -143,11 +143,19 @@ async def get_agent_auth_context_optional(
     authorization: str | None = Header(default=None, alias="Authorization"),
     session: AsyncSession = SESSION_DEP,
 ) -> AgentAuthContext | None:
-    """Optionally resolve agent auth context from `X-Agent-Token` only."""
+    """Optionally resolve agent auth context from `X-Agent-Token` or `Authorization: Bearer`.
+
+    Both `X-Agent-Token` and `Authorization: Bearer <token>` are accepted so that
+    routes depending on this function (e.g. board/task dependency resolvers) behave
+    consistently with `get_agent_auth_context`, which also accepts both headers.
+    Previously, `accept_authorization=False` caused 401 on any route that resolved
+    a board or task via the shared `ACTOR_DEP` chain (e.g. PATCH /tasks/{id},
+    POST /tasks/{id}/comments) when the caller used `Authorization: Bearer`.
+    """
     resolved = _resolve_agent_token(
         agent_token,
         authorization,
-        accept_authorization=False,
+        accept_authorization=True,
     )
     if not resolved:
         if agent_token:
